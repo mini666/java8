@@ -83,7 +83,9 @@ for (String name : names) {
 ### 타임 라인
 Instant.now() 는 현재 인스턴트를 준다. 
 두 인스턴트를 비교할때는 equals와 compareTo를 사용.
+
 실행시간 측정
+
 ```
 Instant start = Instant.now();
 runAlgorithm();
@@ -101,6 +103,7 @@ multipliedBy, divideBy, negted | 해당 Duration을 주어진 long 값 또는 -1
 isZero, isNegative | Duration이 0 또는 음수인지 검사
 
 어떤 알고리즘이 다른 알고리즘보다 최소 10배 빠른지 검사
+
 ```
 Duration timeElapsed2 = Duration.between(start2, end2);
 boolean overTenTimesFaster = timeElapsed.multipliedBy(10).minus(timeElapsed2).isNegative();
@@ -120,6 +123,7 @@ alonzosBirthday = LocalDate.of(1903, Month.JUNE, 14);
 
 월은 1부터 시작. Month enum을 사용할 수도 있음.
 유용한 메서드
+
 메서드 | 설명
 ------------|------------
 not, of | 현재 시각 또는 주어진 연, 월, 일로부터 LocalDate를 생성하는 정적 메서드
@@ -139,6 +143,52 @@ isLeapYear | 해당 연도가 윤년(4로 나눌 수 있지만 100으로 나눌 
 두 시간 인스턴트 사이의 차이는 Duration, 지역날짜에서는 Period.
 
 ### 날짜 조정기
+TemporalAdjusters 클래스는 일반적인 조정(매월 첫번째 월요일)에 사용하는 다수의 정적 메서드를 제공.
+이러한 조정 메서드의 결과를 with 메서드에 전달.
+
+특정 월의 첫번째 화요일
+```
+LocalDate firstTuesday = LocalDate.of(year, month, 1).with(TemporalAdjusters.nextOfSame(DayOfWeek.TUESDAY));
+```
+with 메서드는 원본을 수정하지 않고 새로운 LocalDate 객체를 리턴.
+TemporalAdjusters 클래스의 날짜 조정기
+
+메서드 | 설명
+------------|------------
+next(dayOfWeek), previous(dayOfWeek) | 지정 요일에 해당하는 다음 또는 이전 날짜
+nextOrSame(dayOfWeek), previousOrSame(dayOfWeek) | 주어진 날짜부터 시작해서 지정 요일에 해당하는 다음 또는 이전 날짜
+dayOfWeekInMonth(n, dayOfWeek) | 해당 월의 n번째 지정 요일
+lastInMonth(dayOfWeek) | 해당 월의 마지막 지정 요일
+firstDayOfMonth(), firstDayOfNextMonth(), firstDayOfNextYear(), lastDayOfMonth(), lastDayOfPreviousMonth(), lastDayOfYear() | 메서드 이름이 기술된 날짜
+
+TemporalAdjuster 인터페이스를 구현하면 자신만의 조정기를 만들 수 있음.
+다음번 평일을 계산하는 조정기
+
+```
+TemporalAdjuster NEXT_WORKDAY = w -> {
+  LocalDate result = (LocalDate)w;
+  do {
+    result = result.plusDay(1);
+  } while (result.getDayOfWeek().getValue() >= 6);
+  return result;
+};
+
+LocalDate backToWork = today.with(NEXT_WORKDAY);
+```
+
+람다 표현식의 파라미터는 Temporal 타입이기 때문에 LocalDate로 캐스트해야 한다.
+
+UnaryOperator<LocalDate> 타입의 람다를 기대하는 ofDateAdjuster를 사용하면 이 캐스트를 피할 수 있다.
+
+```
+TemporalAdjuster NEXT_WORKDAY = TemporalAdjusters.ofDateAdjuster(w -> {
+  LocalDate result = w;   // 캐스트가 없다.
+  do {
+    result = result.plusDay(1);
+  } while (result.getDayOfWeek().getValue() >= 6);
+  return result;
+};
+```
 
 
 ## 6장 병행성 향상점

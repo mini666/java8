@@ -263,12 +263,102 @@ ZonedDateTime nextMeeting = meeting.plus(Period.ofDays(7));     // OK
 시간대 규칙 없이 UTC로부터 오프셋으로 시간을 나타내는 OffsetDateTime 클래스도 있다. 특정 네트워크 프로토콜처럼 특별히 시간대 규칙의 부재를 요구하는 특수 애플리케이션용으로 의도 되었다.
 
 ### 포맷팅과 파싱
+DateTimeFormatter 클래스는 날짜/시간 값을 출력하는 세종류의 포맷터 제공.
+* 미리 정의된 표준 포맷터(표 참고)
+* 로케일 종속 포맷터
+* 커스텀 패턴을 이용하는 포맷터
 
+미리 정의된 포맷터
 
+포맷터 | 설명 | 설명
+------------|------------|------------
+BASIC_ISO_DATE | 구분자 없는 연, 월, 일, 시간대 오프셋 | 19890716-0500
+ISO_LOCAL_DATE, ISO_LOCAL_TIME, ISO_LOCAL_DATE_TIME | -, :, T 구분자 사용 | 1989-07-16, 09:32:00, 1969-07-16T09:32:00
+ISO_OFFSET_DATE, ISO_OFFSET_TIME, ISO_OFFSET_DATE_TIME | ISO_LOCAL_XXX와 유사하지만 시간대 오프셋을 포함 | 1969-07-16-05:00, 09:32:00-05:00, 1969-07-16T09:32:00-05:00
+ISO_ZONED_DATE_TIME | 시간대 오프셋과 시간대 ID 포함 | 1969-07-16T09:32:00-05:00[America/New_York]
+ISO_INSTANT | 시간대 ID Z로 표기하는 UTC 형식 | 1969-07-16T14:32:00Z
+ISO_DATE, ISO_TIME, ISO_DATE_TIME | ISO_OFFSET_DATE, ISO_OFFSET_TIME, ISO_ZONED_DATE_TIME과 유사하지만 시간대 정보가 선택적임 | 1969-07-16-05:00, 09:32:00-05:00, 1969-07-16T09:32:00-05:00[America/New_York]
+ISO_ORDINAL_DATE | LocalDate에 해당하는 연도와 연 단위 일 | 1969-197
+ISO_WEEK_DATE | LocalDate에 해당하는 연, 주, 요일 | 1969-W29-3
+RFC_1123_DATE_TIME | 이메일 타임스탬프 표준으로 RFC 822에서 표준화되었고 RFC-1123에서 연도에 4자리 숫자를 사용하도록 업데이트 됨 | Wed, 16 Jul 1969 09:32:00 -0500
 
+표준 포맷터 중 하나를 사용하려면 format 메서드 호출
 
+```
+String formatted = DateTimeFormatter.ISO_DATE_TIME.format(apollo11launch);
+// 1969-07-16T09:32:00-05:00[America/New_York]
+```
 
+표준 포맷터는 대부분 기계가 읽을 수 있는 타임스탬프 용으로 만들어졌다. 사람이 읽을 수 있는 날짜와 시간을 표현하려면 로케일 종속 포맷터를 사용한다.
 
+로케일 종속 포맷터에는 **SHORT, MEDIUM, LONG, FULL** 네가지 형식 존재.
+
+형식 | 날짜 | 시간
+------------|------------|------------
+SHORT | 7/16/69 | 9:32 AM
+MEDIUM | Jul 16, 1969 | 9:32:00 AM
+LONG | July 16, 1969 | 9:32:00 AM EDT
+FULL | Wednesday, July 16, 1969 | 9:32:00 AM EDT
+
+정적 메서드 ofLocalizedDate, ofLocalizedTime, ofLocalizedDateTime은 로케일 종속 포맷터를 생성
+
+```
+DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG);
+String formatted = formatter.forater(apollo11launch);
+// July 16, 1969 9:32:00 AM EDT
+
+// 다른 로케일 사용시
+formatted = formatter.withLocale(Locale.FRENCH).format(apollo11launch); // 16 juillet 1969 09:32:00 EDT
+
+// Pattern 지정시
+formatter = DateTimeFormatter.ofPattern("E yyyy-MM-dd HH:mm");  // Wed 1969-07-16 09:32
+```
+
+날짜/시간 형식에 흔히 사용하는 포맷팅 심볼
+ChronoField 또는 용도 | 예
+------------|------------
+EAR | G:AD, GGGG:Anno Domini, GGGGG:A
+YEAR_OF_ERA | yy:69, yyyy:1969
+MONTH_OF_YEAR | M:7, MM:07, MMM:Jul, MMMM:July, MMMMM:J
+DAY_OF_MONTH | d:6, dd:06
+DAY_OF_WEEK | e:3, E:Wed, EEEE:Wednesday, EEEEE:W
+HOUR_OF_DAY | H:9, HH:09
+CLOCK_HOUR_OF_AM_PM | K:9, KK:09
+AMPM_OF_DAY | a:AM
+MINUTE_OF_HOUR | mm:02
+SECOND_OF_MINUTE | ss:00
+NANO_OF_SECOND | nnnnnn:000000
+시간대 ID | VV:America/New_York
+시간대 이름 | z:EDT, zzzz:Eastern Daylight Time
+시간대 오프셋 | x:04, xx:-0400, xxx:-04:00, XXX:xxx와 같지만 0에 Z를 사용
+지역화된 시간대 오프셋 | O:GMT-4, 0000:GMT-04:00
+
+문자열로부터 날짜/시간 값을 파싱하려면 정적 parse 메서드들 중 하나를 사용
+
+```
+LocalDate churchsBirthday = LocalDate.parse("1903-06-14");
+ZonedDateTime apollo11launch = ZonedDateTime.parse("1969-07-16 03:32:00-0400", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssxx"));
+```
+
+### 레거시 코드와 상호 동작
+Instant 클래스는 java.util.Date와 유사. Date 클래스에 Instant로 변환하는 toInstant와 Instant를 Date로 변환하는 from 정적 메서드를 추가.
+
+ZonedDateTime은 java.util.GregorianCalendar에 해당하며 GregorianCalendar에 toZonedDateTime, from 메서드를 추가.
+
+java.time 클래스들과 레거시 클래스들 사이의 변환
+클래스 | 레거시 클래스로 변환 | 레거시 클래스로부터 변환
+------------|------------|------------
+Instant ↔ java.util.Date | Date.from(instant) | date.toInstant()
+ZonedDateTime ↔ java.util.GregorianCalendar | GregorianCalendar.from(zonedDateTime) | cal.toZonedDateTime()
+Instant ↔ java.sql.Timestamp | Timestamp.from(instant) | timestamp.toInstant()
+LocalDateTime ↔ java.sql.Timestamp | Timestamp.valueOf(localDateTime) | timestamp.toLocalDateTime()
+LocalDate ↔ java.sql.Date | Date.valueOf(localDate) | date.toLocalDate()
+LocalTime ↔ java.sql.Time | Time.valueOf(localTime) | time.toLocalTime()
+DateTimeFormatter ↔ java.text.DateFormat | formatter.toFormat() | 
+java.util.TimeZone ↔ ZoneId | Timezone.getTimeZone(id) | timeZone.toZoneId()
+java.nio.file.attribute.FileTime ↔ Instant | FileTime.from(instant) | fileTime.toInstant()
+
+ 
 
 
 

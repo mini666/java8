@@ -70,15 +70,15 @@ for (String name : names) {
 
 ## 5장 새로운 날짜 및 시간 API
 * 핵심내용
-** 모든 java.time 객체는 수정 불가
-** Instant는 타임 라인의 한 시점(Date와 유사)
-** 자바의 시간에서 하루는 정확히 86,400초로 윤초가 없다.
-** Duration은 두 인스턴트 사이의 차이
-** LocalDateTime은 시간대 정보를 포함하지 않는다.
-** TemporalAdjuster의 메서드들은 (특정 월의 첫번째 화요일 찾기 같은) 일반적인 캘린더 계산을 처리
-** ZonedDateTime은 주어진 시간대에서 특정 시점(GregortianCalendar와 유사)
-** 구역 시간을 앞으로 가게 할 때는 일광 절약 시간 변경을 고려하기 위해 Duration이 아닌 Period를 사용
-** DateTimeFormatter를 사용해 날짜와 시간을 해석
+  * 모든 java.time 객체는 수정 불가
+  * Instant는 타임 라인의 한 시점(Date와 유사)
+  * 자바의 시간에서 하루는 정확히 86,400초로 윤초가 없다.
+  * Duration은 두 인스턴트 사이의 차이
+  * LocalDateTime은 시간대 정보를 포함하지 않는다.
+  * TemporalAdjuster의 메서드들은 (특정 월의 첫번째 화요일 찾기 같은) 일반적인 캘린더 계산을 처리
+  * ZonedDateTime은 주어진 시간대에서 특정 시점(GregortianCalendar와 유사)
+  * 구역 시간을 앞으로 가게 할 때는 일광 절약 시간 변경을 고려하기 위해 Duration이 아닌 Period를 사용
+  * DateTimeFormatter를 사용해 날짜와 시간을 해석
 
 ### 타임 라인
 Instant.now() 는 현재 인스턴트를 준다. 

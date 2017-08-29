@@ -190,6 +190,133 @@ TemporalAdjuster NEXT_WORKDAY = TemporalAdjusters.ofDateAdjuster(w -> {
 };
 ```
 
+### 지역 시간
+LocalTime은 04:50:00 같은 시간을 표현. LocalTime의 인스턴스는 of 나 now를 이용해 생셩.
+
+```
+LocalTime rightNow = LocalTime.now();
+LocalTime bedtime = LocalTime.of(22, 30); // 또는 LocalTime.of(22, 30, 0)
+```
+
+LocalTime 메서드
+
+메서드 | 설명
+------------|------------
+now, of | 현재 시각 또는 주어진 시, 분 그리고 선택적으로 초와 나노초로부터 LocalTime을 생성
+plusHours, plusMinus, plusSeconds, plusNanos | 해당 LocalTime에 시, 분, 초, 나노초를 더한다.
+minusHous, minusMinutes, minusSeconds, minusNanos | 해당 LocalTime에서 시, 분, 초, 나노초를 뺀다.
+plus, minus | Duration을 더하거나 뺀다.
+withHour, withMinute, withSecond, withNano | 시, 분,초,나노초가 주어진 값으로 변경된 새로운 LocalTime 리턴.
+getHour, getMinute, getSecond, getNano | 해당 LocalTime의 시, 분, 초, 나노초를 얻는다.
+toSecondOfDay, toNanoOfDay | 자정과 해당 LocalTime 사이의 초 또는 나노초 수를 리턴.
+isBefore, isAfter | 해당 LocalTime을 다른 LocalTime과 비교
+
+LocalTime은 AM/PM은 신경 쓰지 않는다. 이런 일은 포맷터의 몫이다.
+
+날짜와 시간을 표현하는 LocalDateTime 클래스는 고정 시간대에서 시간의 한 점을 저장하는데 적합. 일광 절약 시간을 포함하는 계산이나 서로 다른 시간대에 있는 사용자들을 다뤄야 한다면 ZonedDateTime 클래스를 사용.
+
+### 구역시간
+자바는 IANA(인터넷 할당 번호 관리 기관-Internet Assigned Numbers Authority) 데이터베이스를 사용한다.
+
+모든 시간대를 얻으려면 ZoneId.getAvailableIds를 호출.
+
+정적 메서드 ZoneId.of(id)는 시간대 ID를 넘겨주면 ZoneId 객체를 돌려준다. 이 객체를 사용해 local.atZone(zoneId) 형식으로 호출하면 LocalDateTime 객체를 ZonedDateTime 객체로 변환할 수 있다.
+또한 ZonedDateTime.of(year, month, day, hour, minute, second, nano, zoneId)를 호출해 ZonedDateTime을 생성할 수도 있다.
+
+```
+ZonedDateTime apollo111launch = ZonedDateTime.of(1969, 7, 16, 9, 32, 0, 0, ZoneId.of("America/New_York"));
+Instant instant = apollo11launch.toInstant();   // ZonedDateTime을 인스턴트로 변환
+ZonedDateTime other = instant.atZone(ZoneId.of("UTC"));   // instant를 ZonedDateTime으로 변환.
+```
+
+ZonedDateTime 메서드는 LocalDateTime과 비슷.
+
+일광절약시간이 시작할때는 시계가 1시간 후로 간다. 중유럽은 2013년 3월 31일 2시에 일광 절약시간으로 변환했다. 존재하지 않은 시간인 3월 31일 2시 30분을 생성하면 실제로는 3시 30분을 얻는다.
+
+```
+ZonedDateTime skipped = ZonedDateTime.of(
+  LocalDate.of(2013, 3, 31),
+  LocalTime.of(2, 30),
+  ZoneId.of("Europe/Berlin"));
+  // 3월 31일 3시 30분을 생성
+```
+
+반대로 일광 절약 시간이 끝날때는 시계가 1시간 전으로 설정되어, **지역시간이 동일한 두 인스턴트가 생긴다.** 이 범위에 속하는 시간을 생성하면 둘 중 이른 인스턴트를 얻는다.
+
+```
+ZonedDateTime ambigous = ZoneDateTime.of(
+  LocalDate.of(2013, 10, 27), // 일광 절약 시간 끝
+  LocalTime.of(2, 30),
+  ZoneId.of("Europe/Berlin"));
+  // 2013-10-27T02:30+02:00[Europe/Berlin]
+  
+ZonedDateTime anHourLater = ambigous.plusHour(1);   // 2013-10-27T02:30+01:00[Europe/Berlin]
+```
+
+일광 절약 시간 경계를 가로질러 날짜를 조정할때에는 Duration이 아닌 Period를 사용해야 한다.
+
+```
+ZonedDateTime nextMeeting = meeting.plus(Duration.ofDays(7));   // Bad
+ZonedDateTime nextMeeting = meeting.plus(Period.ofDays(7));     // OK
+```
+
+시간대 규칙 없이 UTC로부터 오프셋으로 시간을 나타내는 OffsetDateTime 클래스도 있다. 특정 네트워크 프로토콜처럼 특별히 시간대 규칙의 부재를 요구하는 특수 애플리케이션용으로 의도 되었다.
+
+### 포맷팅과 파싱
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
 
 ## 6장 병행성 향상점
 

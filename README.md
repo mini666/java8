@@ -358,57 +358,153 @@ DateTimeFormatter ↔ java.text.DateFormat | formatter.toFormat() |
 java.util.TimeZone ↔ ZoneId | Timezone.getTimeZone(id) | timeZone.toZoneId()
 java.nio.file.attribute.FileTime ↔ Instant | FileTime.from(instant) | fileTime.toInstant()
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
 ## 6장 병행성 향상점
+* 핵심내용
+  * updateAndGet/accumulateAndGet 으로 원자적 업데이트
+  * **높은 경쟁상황**에서는 LongAccumulator/DoubleAccumulator가 AtomicLong/AtomicDouble 보다 효율적
+  * compute와 merge 덕분에 ConcurrentHashMap에 있는 항목의 업데이터가 간단해 짐.
+  * ConcurrentHashMap은 search, reduce, forEach 같은 벌크 연산을 지원하며, 각각 키, 값, 키와 값, 엔트리에 작용하는 변종을 제공.
+  * 집합 뷰(SetView)는 ConcurrentHashMap을 Set으로 사용할 수 있게 해준다.
+  * Arrays 클래스는 병렬 정렬, 채우기, 프리픽스 연산을 위한 메서드를 포함
+  * 완료 가능한 퓨처(Completable Future)는 비동기 연산들을 합성할 수 있게 해준다.
+  
+### 원잣값
+값을 원자적으로 더하고 빼는 메서드가 있지만 좀 더 복잡한 업데이트를 수행하려면 compareAndSet 메서드를 사용해야 한다. 예를 들어 서로 다른 쓰레드들에서 주시하고 있는 가장 큰 값을 추적하고 싶은 경우 다음 코드는 예상대로 동작하지 않는다.
+
+```
+public static AtomicLong largest = new AtomicLong();
+// 어떤 쓰레드에서
+largest.set(Math.max(largest.get(), observed)); // 오류 - 경쟁 조건
+```
+
+이 업데이트는 원자적이지 않다. 대신 루프에서 새로운 값을 계산하고 compareAndSet을 사용해야 한다.
+
+```
+do {
+  oldValue = largest.get();
+  newValue = Math.max(oldValue,observed);
+} while (!largest.compareAndSet(oldValue, newValue);
+```
+
+자바8에서는 루프가 필요 없고 람다 표현식을 이용하여 처리
+
+```
+largest.updateAndGet(x -> Math.max(x, observed));
+// or
+largest.accumulateAndGet(observed, Math::max);
+```
+
+AtomicInteger, AtomicIntegerArray, AtomicIntegerFieldUpdater, AtomicLongArray, AtomicLongFieldUpdater, AtomicReference, AtomicReferenceArray, AtomicReferenceFieldUpdater 클래스에도 이와 같은 메서드를 제공
+
+동일한 원잣값을 접근하는 쓰레드가 아주 많은 경우에는 지나친 업데이트르 너무  많은 재시도가 필요하기 때문에 성능이 떨어진다. 이를 위해 LongAdder, LongAccumulator를 제공. LongAdder는 각각을 모두 합하면 현재 값이 되는 여러 변수로 구성. 여러 쓰레드가 서로 다른 피가수(Summand)를 업데이트할 수 있고  쓰레드 수가 증가하면 새루운 서맨드가 자동으로 제공된다. 이 방법은 모든 작업을 마치기 전에는 합계 값이 필요하지 않은 일반적인 상황에서 효율적.
+
+높은 경쟁을 예상할 때는 AtomicLong 대신 무조건 LongAdder를 사용해야 한다. LongAdder의 메서드 이름은 AtomicLong과 약간씩 다르다. 카운터를 증가시키려면 increment를 수량을 추가할 때는 add, 합계를 추출할 때는 sum을 호출
+
+```
+final LongAdder adder = new LongAdder();
+for (...)
+  pool.submit(() -> {
+    while (...) {
+      ...
+      if (...) adder.increment();
+    }
+  });
+...
+long total = adder.sum());
+```
+
+LongAccumulator는 이 개념을 임의의 누적 연산으로 일반화. 생성자에는 필요한 연산과 해당 연산의 중립 요소를 제공. 다음은 LongAdder와 같은 효과를 낸다.
+
+```
+LongAccumulator adder = new LongAccumulator(Long::sum, 0);
+// 어떤 쓰레드에서
+adder.accumulator(value);
+```
+
+Long::sum이 아닌 Math.min/max를 선택하면 최소/최대값을 구할 수 있다. 해당 연산은 결합 법칙과 교환법칙이 성립해야 한다.
+DoubleAdder와 DoubleAccumulator도 같은 방식으로 동작.
+
+자바8은 낙관적 읽기(Optimistic read)를 구현하는데 사용할 수 있는 StampedLock 클래스를 추가. tryOptimisticRead를 호출하여 스탬프를 얻은 다음 값을 읽고 스탬프가 여전히 유효(즉, 다른 쓰레드에서 읽기 잠금을 획득하지 않음)한지 검사하여 아직 유효하다면 값을 이융하고 그렇지 않으면(쓰기 작업을 하는 쓰레드를 블록하는) 읽기 잠금을 얻는다.
+
+```
+public class Vector {
+  private int size;
+  private Object[] elements;
+  private StampedLocak lock = new StampedLocak();
+  
+  public Object get(int n) {
+    long stamp = lock.tryOptimisticRead();
+    Object[] currentElements = elements;
+    int currentSize = size;
+    if (!lock.validate(stamp)) {    // 다른 누군가가 쓰기 잠금을 가지고 있다.
+      stamp = lock.readLock();      // 비관적 잠금(Pessimistic lock)을 얻는다.
+      currentElements = elements;
+      currentSize = size;
+      lock.unlockRead(stamp);
+    }
+    return n < currentSize ? currentElements[n] : null;
+  }
+  ...
+}
+```
+
+### ConcurrentHashMap 향상점
+자바8은 크기를 long으로 리턴하는 mappingCount 메서드를 도입하여 20억개가 넘는 엔트리를 담은 맵을 지원.
+HashMap은 HashCode가 같은 모든 엔트리를 같은 Bucket에 유지하는데, 자바8부터 ConcurrentHashMap은 키 타입이 Comparable을 구현하는 경우 버킷을 리스트가 아닌 트리로 조작하여 O(log(n)) 성능을 보장한다.
+
+#### 값 업데이트 하기
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 7장 Nashorn 자바 스크립트 엔진
 

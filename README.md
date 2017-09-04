@@ -453,6 +453,128 @@ public class Vector {
 HashMap은 HashCode가 같은 모든 엔트리를 같은 Bucket에 유지하는데, 자바8부터 ConcurrentHashMap은 키 타입이 Comparable을 구현하는 경우 버킷을 리스트가 아닌 트리로 조작하여 O(log(n)) 성능을 보장한다.
 
 #### 값 업데이트 하기
+여러 쓰레드에서 단어들을 마주치는 상황의 빈도를 세고자 할때
+
+```
+Long oldValue = map.get(word);
+Long newValue = oldValue == null ? 1 : oldValue + 1;
+map.put(word, newValue);  // 오류 - oldValue를 교체하지 않을 수도 있다.
+
+// 해결책
+do {
+  oldValue = map.get(word);
+  newValue = oldValue == null ? 1 : oldValue + 1;
+} while (!map.replace(word, oldValue, newValue));
+
+// 또 다른 해결책
+map.putIfAbsent(word, new LongAdder());
+map.get(word).increment();
+```
+
+자바8에서 원자적 업데이트를 편리하게 해주는 메서드.
+compute 메서드는 키와 새로운 값을 계산하는 함수를 전달 받는다.
+
+```
+map.compute(word, (k, v) -> v == null ? 1 : v + 1);
+```
+
+※ ConcurrentHashMap에는 내부적으로 null 값을 사용하고 있기 때문에  null 값을 저장할 수 없다.
+
+computeIfPresent/computeIfAbsent
+
+```
+map.computeIfAbsent(word, k -> new LongAdder()).increment();
+```
+
+키가 처음으로 추가될때 뭔가 특별한 작업이 필요한 경우 merge 메서드 사용. 이 메서드는 키가 아직 존재하지 않을때 사용할 초기값을 파라미터로 받는다. 키가 존재하면 파라미터로 전달한 함수가 기존 값과 초깃값을 받는다.
+
+```
+map.merge(word, 1L, (existingValue, newValue) -> existingValue + newValue);
+// or
+map.merge(word, 1L, Long::sum);
+```
+
+compute나 merge에 전달한 함수가 null을 리턴하면 기존 엔트리가 맵에서 제거된다.
+compute나 merge를 사용할 때는 이들 메서드에 전달한 함수에서 많을 일을 수행하면 안된다. 전달한 함수가 실행되는 동안 해당 맵을 대상으로 하는 다른 업데이트가 블록될 수 있다. 또한 함수 내부에서 맵의 다른 부분을 업데이터하면 안된다.
+
+#### 벌크 연산
+연산의 종료
+* search는 함수가 널이 아닌 결과를 돌려줄 때까지 각 키 그리고/또는 값에 함수를 적용한다.
+* reduce는 제공받는 누적 함수를 이용해 모든 키 그리고/또는 값을 결합한다.
+* forEach는 함수를 모든 키 그리고/또는 값에 적용한다.
+
+각 연산의 네가지 버전
+* operationKeys : 키를 대상으로 동작
+* operationValues : 값을 대상으로 동작
+* operation : 키와 값을 대상으로 동작
+* opertionEntries : Map.Entry 객체를 대상으로 동작
+
+이들 연산 각각에 병렬성 임계값(Parallelism threshold)을 지정해야 한다. 맵이 임계값보다 많은 요소를 담고 있으면 벌크 연산이 병렬화된다.
+
+```
+// 1000번 이상 나타나는 첫번째 단어를 찾고 싶을때는 키와 값을 모두 검색해야 한다.
+String result = map.search(threshold, (k, v) -> v > 1000 ? k : null);
+
+// forEach 함수는 두가지 변종
+// 첫번째 단순히 각 엔트리에 소비함수 적용
+map.forEach(threshold, (k, v) -> System.out.println(k + " -> " + v));
+// 두번째는 추가로 변환함수를 받아 이를 먼저 적용한수 소비함수에 전달
+map.forEach(threshold,
+  (k, v) -> k + " -> " + v, // 변환 함수
+  System.out::println);     // 소비 함수
+  
+// 변환함수는 필터로 사용될 수 있다. null을 리턴하면 건너뛴다.
+map.forEach(threshold, (k, v) -> v > 1000 ? k + " -> " + v : null, System.out::println);
+
+// reduce 연산은 입력을 누적 함수와 결합
+Long sum = map.reduceValues(threshold, Long::sum);
+// forEach와 마찬가지로 변환함수를 전달 할 수도 있다. 가장 긴 키의 길이
+Integer maxLength = map.reduceKeys(threshold, String::length, Integer::max);
+// 변환함수를 필터로 사용. 값이 1000보다 큰 엔트리의 개수
+Long count = map.reduceValues(threshold, v -> v > 1000 ? 1L : null, Long::sum);
+```
+
+맵이 비었거나 모든 엔트리가 필터링된 경우에는 reduce 연산이 null을 리턴. 맵에 요소가 한개만 있다면 해당 요소의 변환이 리턴되고 누적함수는 적용되지 않는다.
+
+int, long, double 결과를 얻는 ToInt, ToLong, ToDouble 접미가가 붙은 특화 번전이 있는데 이 메서드를 사용할 때는 입력을 기본 타입 값으로 변환하고 디폴트 값과 누적 함수를 지정해야 한다. 맵이 비어 있는 경우 디폴트 값이 리턴된다.
+
+```
+long sum = map.reduceValuesToLong(threshold,
+  Long::longValue,    // 기본 타입으로 변환하는 함수
+  0,                  // 비어 있는 맵인 경우 디폴트 값
+  Long::sum);         // 기본 타입 누적 함수
+```
+
+기본 타입 특화 버전은 요소가 하나뿐인 맵과 다르게 동작한다. 특화 버전에서는 변환된 요소를 리턴하는 대신 해당 요소가 디폴트 값과 누적되어 리턴된다.
+
+#### 집합 뷰
+쓰레드에 안전한 Set.
+정적 메서드인 newKeySet은  실제로 ConcurrentHashMap<K, Boolean>을 감싸는 Set<K>를 리턴한다. Boolean은 모두 Boolean.TRUE로 신경쓰지 않아도 된댜.
+
+```
+Set<String> words = ConcurrentHashMap.<String>newKeySet();
+```
+
+기존 맵이 있는 경우 keySet 메서드는 키 집합을 돌려준다. 이 집합은 수정 가능하고 집합의 요소를 제거하면 맵에서 키가 제거된다. 하지만 키 집합에 요소를 추가하는 일은 키에 대응해 추가할 값이 없으므로 디폴트 값을 받아 추가해야 한다.
+
+```
+Set<String> words = map.keySet(1L);
+words.add("Java");
+```
+
+### 병렬 배열 연산
+Arrays 클래스는 다수의 병렬 연산을 제공. 정적 Arrays.parallelSort 메서드는 기본 타입 또는 객체들의 배열을 정렬할 수 있다.
+
+```
+String contents = new String(Files.readAllBytes(Paths.get("alice.txt")), StandardCharsets.UTF_8);
+String[] words = contents.split("[\\P{L}]+"); // 비문자로 분리
+Arrays.parallelSort(words);
+```
+
+객체를 정렬 할때 Comparator을 전달할 수 있다. 또한 모든 정렬 메서드에 범위의 경계를 전달할 수 있다.
+
+```
+values.parallelSort(values.length / 2, value.length);   // 상위 절반을 정렬한다.
 
 
 

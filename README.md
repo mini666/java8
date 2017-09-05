@@ -575,58 +575,100 @@ Arrays.parallelSort(words);
 
 ```
 values.parallelSort(values.length / 2, value.length);   // 상위 절반을 정렬한다.
+```
 
+parallelSetAll 메서드는 전달받은 함수에서 계산한 값들로 배열을 채운다. 이 메서드에 전달하는 함수는 요소의 인덱스를 받고 그 위치에 있는 값을 계산한다.
 
+```
+Arrays.parallelSetAll(values, i -> i % 10);
+```
 
+parallelPrefix 메서드는 결합 법칙형 연산에 대한 프리픽스의 누적으로 교체한다.
 
+```
+// values = [1, 2, 3, 4, ...]
+Arrays.parallelPrefix(values, (x, y) -> x * y);
+// => [1, 1*2, 1*2*3, 1*2*3*4, ...]
+```
 
+### 완료 가능한 퓨처
+#### 퓨처
 
+```
+public void Future<String> readPage(URL url) { ... }
+public static List<URL> getLinks(String page) { ... }
 
+Future<String> contents = readPagee(url);
+String page = contents.get();             // 블록킹 호출이므로 메서드를 직접 호출하는 것보다 나을게 없다.
+List<URL> links = Parser.getLinks(page);
+```
 
+#### 퓨처 합성하기
+readPage에서 CompletableFuture<String>을 리턴하도록 변경. CompletableFuture는 후처리 함수를 전달할 수 있는 tehnApply 메서드를 제공.
 
+```
+CompletableFuture<String> contents = readPage(url);
+CompletableFuture<List<String>> links = contents.thenApply(Parser::getLinks);
+```
 
+thenApply 메서드는 블록되지 않고 또 다른 퓨처를 리턴한다. 첫번째 퓨처가 완료될 때 그 결과가 getLinks 메서드에 전달되며, 이 메서드의 리턴값이 최종 결과가 된다.
 
+#### 합성 파이프라인
+스트림 파이프라인이 스트림생성 -> 변환 -> 최종 연산의 흐름을 갖는 것처럼 퓨처의 파이프라인도 동일하다.
+일반적으로 정적 메서드 supplyAsync로 CompletableFuture를 생성하여 파이프라인을 시작한다. 이 메서드는 Supply<T>를 요구한다. Supply<T>는 파라미터가 없고 T를 리턴하는 함수이다. 이 함수는 별도의 쓰레드에서 호출된다.
 
+```
+CompletableFuture<String> contents = CompletableFuture.supplyAsync(() -> blockingReadPage(url));
+```
 
+Runnable을 전달받고 CompletableFutur<Void>를 돌려주는 정적 runAsync 메서드도 있다. 이 메서드는 액션 사이에 데이터를 전달하지 않고 단순히 어떤 액션 다음에 다른 액션을 스케줄하려고 할 때 유용.  
 
+*Async로 끝나는 모든 메서드는 두가지 변종이 있다. 이 중 하나는 제공된 액션을 공통 ForkJoinPool에서 실행한다. 나머지 하나는 java.util.concurrent.Executor 타입 파라미터를 받아서 액션을 실행하는데 사용한다.*
 
+다음으로, 또 다른 액션을 같은 쓰레드 또는 다른 쓰레드에서 실행하게 위해 thenApply 또는 thenApplyAsync를 호출할 수 있다. 이들 메서드를 이용할 때는 함수를 전달하고 CompletableFuture<U>를 얻는다.
 
+```
+CompletableFuture<List<String>> links = CompletableFuture.supplyAsync(() -> blockingReadPage(url))
+                                                         .thenApply(Parser::getLinks);
+// 단순 결과 출력
+CompletableFuture<Void> links = CompletableFuture.supplyAsync(() -> blockingReadPage(url))
+                                                 .thenApply(Parser::getLinks)
+                                                 .thenAccept(System.out::println);
+```
 
+thenAccept 메서드는 Consumer(리턴타입이 void인 함수)를 파라미터로 받는다.  
+이상적으로는 퓨처의 get를 호출하지 않아야 한다. 파라이프라인에서 마지막 단계는 단순히 결과를 자신이 속한 곳에 둔다.  
 
+#### 비동기 연산 합성하기
+표현의 단순화를 위해 Function<? super T, U>를 T -> U로 표기.  
 
+단일 퓨처를 다루는 메서드  
 
+메서드 | 파라미터 | 설명
+------------|------------|------------
+thenApply | T -> U | 결과에 함수를 적용한다.
+thenCompose | T -> CompletableFuture<U> | 결과를 대상으로 함수를 호출하며, 리턴된 퓨처를 실행한다.
+handle | (T, Throwable) -> U | 결과 또는 오류를 처리한다.
+thenAccept | T -> void | handle과 유사하지만 결과가 void다.
+thenRun | Runnable | Runnable을 실행하며, 결과가 void다.
 
+여러 퓨처를 결합하는 메서드
 
+메서드 | 파라미터 | 설명
+------------|------------|------------
+thenCombine | CompletableFuture<U>, (T, U) -> V | 둘 모두 실행하고 주어진 함수로 결과들을 결합한다.
+thenAcceptBoth | CompletableFuture<U>, (T, U) -> void | thenCombine과 유사하지만 결과가 void다.
+runAfterBoth | CompletableFuture<?>, Runnable | 둘 모두 완료한 후에 Runnable을 실행
+applyToEither | CompletableFutore<T>, T -> V | 둘 중 하나에서 결과를 얻을 수 있게 될 때 해당 결과를 주어진 함수에 전달
+acceptEither | CompletableFuture<?>, T -> void | applyToEither와 유사하지만 결과가 void 다
+runAfterEither | CompletableFuture<?>, Runnable | 둘 중 하나가 완료한 후에 Runnable을 실행한다.
+static allOf | CompletableFuture<?>... | 주어진 모든 CompletableFuture가 완료하면 void 결과로 완료한다.
+static anyOf | CompletableFuture<?>... | 주어진 CompletableFuture 중 하나가 완료하면 void 결과로 완료한다.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+처음 세 메서드는 CompletableFuture<T>와 CompletableFuture<U> 액션을 병렬로 실행하고 결과들을 결합한다.  
+다음 세 메서드는 두 CompletableFuture<T> 액션을 병렬로 실행한다. 둘 중 하나가 완료하는 즉시 해당 결과를 전달하며, 나머지 결과는 무시한다.
+마지막으로 정적 메서드 allOf와 anyOf는 가변 개수의 완료 가능한 퓨처를 파라미터로 받고, 모두 또는 이중 하나가 와료하는 CompletableFuture<Void>를 돌려준다. 그리고 어떤 결과도 전파되지 않는다.  
+*기술적으로 말하면, 이 절에서 설명하는 메서드들은 CompletableFuture가 아니라 CompletionStage 타입 파라미터를 받는다. CompletionStage는 40개 가까운 추상 메서드를 포함하는 인터페이스 타입으로, 아직은 CompletableFuture에서만 구현하고 있다.*
 
 ## 7장 Nashorn 자바 스크립트 엔진
 

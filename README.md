@@ -904,6 +904,52 @@ public class Item { ... }
 public <T extends Annotation> T getAnnotation(Class<T> annotationClass)
 ```
 
+타입이 같은 여러 어노테이션이 있으면 위 메서드가 무엇을 해야 할까? 첫번째 어노테이션만 리턴해야 할까? 이렇게 하면 레거시 코드와 관련해 모든 종류의 원치 않은 동작을 하게 될 것이다. 이 문제를 해결하게 위해 반복 가능 어노테이션의 고안자는 반드시 다음 작업을 해야 한다.
+* 반복 가능 어노테이션에 @Repeatable 어느테이션을 붙인다.
+* 컨테이너 어노테이션을 제공한다.
+
+예를 들어, 간단한 유닛 테스팅 프레임워크인 경우 다음과 같이 사용하는 반복 가능한 @TestCase 어노테이션을 정의할 수 있다.
+
+```
+@TestCase(params="4", expected="24")
+@TestCase(params="0", expected="1")
+public static long factorial(int n) { ... }
+
+// 다음은 이 어노테이션을 정의하는 방법
+@Repeatable(TestCase.class)
+@interface TestCase {
+  String params();
+  String expected();
+}
+
+@interface TestCases {
+  TestCase[] value();
+}
+```
+
+사용자가 @TestCase 어노테이션을 두번 이상 제공하면 해당 어노테이션들이 자동으로 @TestCases 어노테이션으로 포장된다.  
+어노테이션 처리 코드에서 factorial 메서드를 나타내는 요소를 대상으로 element.getAnnotation(TestCase.class)를 호출하면 null이 리턴한다. 실제로는 해당 요소에 컨테이너 어노테이션인 TestCases가 붙기 때문이다.
+
+자신만의 반복 가능 어노테이션을 위한 어노테이션 처리기를 구현할 때 getAnnotationsByType 메서드를 사용하면 더 간편하다.element.getAnnotationsByType(TestCase.class) 호출은 모든 TestCases 컨테이넌를 '검토'해서 TestCase 어노테이션 배열을 준다.
+
+*위에서 설명한 내용은 리플렉션 API를 이용한 실행 시간 어노테이션 처리와 연관된다. 소스 수준 어노테이션을 처리하는 경우에는 javax.lang.model과 javax.annotation.processing API를 사용한다. 이들 API에서는 컨테이너 '검토'를 지원하지 않는다. 개별 어노테이션(한 번 제공한 경우)과 컨테이너 어노테이션(같은 어노테이션을 두 번 이상 제공한 경우) 모두 처리해야 한다.*
+
+#### 타입 사용 어노테이션
+자바8 이전에는 어노테이션이 선언에 적용되었다. 선언은 새로운 이름을 도입하는 코드의 일부를 의미한다.  
+@Entity public class **Persion** { ... }  
+@SuppressWarinings("unchecked") List<Person> **people** = query.getResultList();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 9 혹시 놓쳤을 수도 있는 자바7 기능

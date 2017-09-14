@@ -15,11 +15,13 @@
 #### 05. 다수의 ActionListener, Runnable 등을 포함하는 프로젝트 중 하나에서 파일을 불러와서 이러한 인터페이스를 람다 표현식으로 교체하라. 이 교체 작업으로 몇 행을 줄였는가? 코드가 더 읽기 쉬워졌는가? 메서드 레퍼런스를 사용할 수 있었는가?
 
 #### 06. Runnable에서 검사 예외를 다뤄야 하는 점이 싫지 않은가? 모든 검사 예외를 잡아내서 비검사 예외로 바꾸는 uncheck 메서드를 작성하라. 예를 들면, 다음과 같이 사용할 것이다.
+
 '''
 new Thread(uncheck(
   () -> { System.out.println("Zzz"); Thread.sleep(1000); })).start();
   // 여길 보자. catch (InterruptedException) 부분이 없다!
 '''
+
 힌트: run 메서드에서 모든 예외를 던질 수 있는 RunnableEx라는 인터페이스를 정의한다. 다음으로 public static Runnable uncheck(RunnableEx runner)를 구현한다. uncheck 함수 안에서 람다 표현식을 사용한다.
 
 
@@ -27,13 +29,15 @@ new Thread(uncheck(
 #### 07. Runnable 인스턴스 두 개를 파라미터로 받고, 첫번째 인스턴스를 실행한 후 두번째를 실행하는 Runnable을 리턴하는 andThen 이라는 정적메서드를 작성하라. main 메서드에서 andThen 호출에 람다 표현식 두개를 전달하고, 결과로 받은 인스턴스를 실행하라.
 
 #### 08. 람다 표현식이 다음과 같은 향상된 for 루프에 있는 변수를 캡처할 때 무슨 일이 일어나는가?
-<code>
+
+```
 String[] names = { "Perter", "Paul", "Mary" };
 List<Runnable> runners = new ArrayList<>();
 for (String name : names) {
   runners.add(() -> System.out.println(name));
 }
-</code>
+```
+
 규칙에 맞는 작업인가? 각 람다 표현식이 다른 값을 캡처하는가? 아니면 모두 마지막 값을 얻는가? 만일 전통적인 루프인 for (int i = 0; i < names.length; i++)를 사용하면 무슨 일이 일어나는가?
 
 #### 09. Collection으로부터 Collection2라는 서브클래스를 만들고, filter가 true를 리턴하는 각 요소를 대상으로 액션(action)을 적용하는 디폴트 메서드인 void forEachIf(Consumer<T> action, Predicate<T> filter)를 추가하라. 이 디폴트 메서드를 어떻게 사용할 수 있는가?
@@ -938,6 +942,37 @@ public static long factorial(int n) { ... }
 자바8 이전에는 어노테이션이 선언에 적용되었다. 선언은 새로운 이름을 도입하는 코드의 일부를 의미한다.  
 @Entity public class **Persion** { ... }  
 @SuppressWarinings("unchecked") List<Person> **people** = query.getResultList();
+
+자바8에서는 모든 타입 사용에 어노테이션을 붙일 수 있다.  
+private @NonNull List<String> names = nwe ArrayList<>();
+private List<@NonNull String> names;
+
+타입 사용 어노테이션이 나타날 수 있는 곳
+* 제니릭 타입 인자 : List<@NonNull String>.Comparator.<@NonNull String>reverseOrder()
+* 배열의 모든 위치 : @NonNull String[][] words(words[i][j]가 null이 아님). String @NonNull [][] words(words가 null이 아님). String[] @NonNull [] words(words[i]가 null이 아님)
+* 슈퍼클래스와 구현할 인터페이스 : class Image implements @Rectangular Shape
+* 생성자 호출 : new @Path String("/usr/bin")
+* 캐스트와 instanceof 검사 : (@Path String) input, if (input instanceof @Path String) (외부 도구에서만 사용할 목적인 어노테이션으로, 캐스트 또는 instanceof 검사의 동작에는 영향을 주지 않음)
+* 예외 명세 : public Person read() throws @Localized IOException
+*와이드카드와 타입 경계 : List<@ReadOnly ? extends Person>, List<? extends @ReadOnly> Person
+* 메서드 및 생성자 레퍼런스 : @Immutable Person : getName
+
+어노테이션을 붙일 수 없는 몇가지 타입 위치가 있다.
+@NonNull String.class // 규칙에 어긋남 - 클래스 리터럴에 어노테이션을 붙일 수 없다.
+import java.lang.@NonNull String; // 규칙에 어긋남 - import에 어노테이션을 붙일 수 없다.
+
+어노테이션에 어노테이션을 붙이는 일도 불가능하다. 예를 들어 @NonNull String name에 @NonNull 어노테이션을 붙일 수 없다(별도의 어노테이션을 붙일 수는 있지만 name 선언에 적용)
+확장 타입 검사의 잠재 능력 탐구에 관심이 있다면 http://types.cs.washington.edu/checker-framework/tutorial
+
+#### 메서드 파라미터 리플렉션
+이제 리플렉션을 통해 파라미터의 이름을 알 수 있다. 어노테이션과 관련한 상투적인 부분을 줄일 수 있다. 전형적인 JAX-RS 메서드를 고려해 보자
+
+```
+Person getEmployee(@PathParam("dept") Long dept, @QueryParam("id") Long id)
+// 자바8의 새로운 클래스인 java.lang.reflect.Parameter를 이용하면 아래와 같은 코드가 가능
+// 필요한 정보가 클래스 파일에 나타나도록 소스를 javac -parameters 와 같은 형태로 컴파일해야 한다.
+Person getEmployee(@PathParam Long dept, @QueryParam Long id)
+```
 
 
 

@@ -1009,7 +1009,7 @@ if (matcher.matchers()) {
 
 Pattern 클래스는 CharSequence를 정규 표현식에 따라 분리하는 splitAsStream 메서드를 포함한다.
 
-``
+```
 String contents = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
 Stream<String> words = Pattern.compile("[\\P{L}]+").splitAsStream(contents);    // 모든 비문자 시퀀스는 단어 분리자다.
 // asPredicate 메서드는 정규 표현식과 일치하는 문자열을 필터링하는데 사용할 수 있다.

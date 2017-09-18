@@ -2,7 +2,7 @@
 가장빨리만나는자바8
 
 ## 1장 람다표현식
-* 학심 내용
+* 핵심 내용
   * 람다 표현식은 파라미터가 있는 코드 블럭이다.
   * 코드 블록을 나중에 실행하고자 할 때 람다 표현식을 사용한다.
   * 람다 표현식을 함수형 인터페이스로 변환할 수 있다.
@@ -104,13 +104,106 @@ class ConcurrentGreeter extends Greeter {
 *이너 클래스에서는 바깥쪽 클래스의 this 레퍼런스를 EnclosingClass.this::method 또는 EnclosingClass.super::method로 캡처할 수 있다.*
 
 ### 생성자 레퍼런스
+생성자 레퍼런스는 메서드의 이름이 new라는 점을 제회하면 메서드 레퍼런스와 유사. 실제 가리키는 생성자는 문맥에 따라 다르다.
 
+```
+List<String> labels = ...;
+Stream<Button> stream = labels.stream().map(Button::new);
+List<Button> buttons = stream.collect(Collections.toList());
+```
+  
+배열 타입으로도 생성자 레퍼런스를 만들 수 있다. `int[]::new`는 `x -> new int[x]`와 같다.  
+배열 생성자 레퍼런스는 자바의 한계를 극복하는데 유용하다. 자바에서는 제네릭 타입 T의 배열을 생성할 수 없다. 표현식 `new T[n]`은 `new Object[n]`으로 소거되기 때문에 오류다.
 
+```
+Object[] buttons = stream.toArray();
+Button[] buttons = stream.toArray(Button[]:new);
+```
+  
 ### 변수 유효 범위
+람다 표현식에서 해당 표현식을 감싸고 있는 메서드나 클래스에 있는 변수에 접근할 때.
+
+```
+public static void repeatMessage(String text, int count) {
+  Runnable r = () -> {
+    for (int i = 0; i < count; i++) {
+      System.out.println(text);
+      Thread.yield();
+    }
+  };
+  new Thread(r).start();
+}
+
+repeatMessage("Hello", 1000);
+```
+람다 표현식은 세가지로 구성
+* 코드 블럭
+* 파라미터
+* 자유 변수(파라미터도 아니고 코드 내부에도 정의도지 않는 변수)의 값
+
+앞의 예제에서 람다 표현식은 자유 변수 두개(text, count)를 포함. 람다 표현식을 나타내는 자료 구조는 이들 변수의 값을 저장해야 한다. 이 경우 람다 표현식이 이들 값을 캡처했다고 말한다.  
+람다 표현식에서는 값이 변하지 않는 변수만 참조할 수 있다.
+
+```
+public static void repeatMessage(String text, int count) {
+  Runnable r = () -> {
+    while (count > 0) {
+      count--;      // 오류 : 캡처한 변수는 변경할 수 없다.
+      System.out.println(text);
+      Thread.yield()
+    }
+  };
+  new Thread.start();
+}
+
+// 람다 표현식에서 변수를 변경하는 작업은 쓰레드에 안전하지 않다.
+int matches = 0;
+for (Path p : files)
+  new Thread(() -> { if (p가 어떤 프로퍼티를 포함하면) matches++; }).start();
+// matches++가 원자적이지 않기 때문에 결과를 예측할 수 없다.
+```
+
+*이너 클래스 역시 자신을 감싸고 있는 유효 범위에 있는 값들응 캡처랗 수 있다. 자바8 이전에는 이너 클래스가 final 지역변수만 접근할 수 있었다. 지금은 이 규칙이 람다 표현식과 일치하도록 완화되었다. 이너 클래스는 사실상 final인 모든 지역 변수(즉, 값이 변하지 않는 모든 지역 변수)를 접근할 수 있다.*
+
+컴파일러가 모든 동시 접근 오류를 잡아낼 것으로 기대하지 말자. 변경 금지는 오직 지역 변수에만 해당한다. 만일 matches가 람다를 감싸고 있는 클래스의 인스턴스 변수 또는 정적 변수라면 오류가 보고되지 않는다.  
+람다 표현식에서 this 키워드를 사용하면, 결국 해당 람다를 생성하는 메서드의 this 파라미터를 참조하는 결과가된다.
+
+```
+public class Application() {
+  public void doWork() {
+    Runnable runner = () -> { ...; System.out.println(this.toString(); ... };
+    ...
+  }
+}
+```
+
+여기서 this는 Runnable이 아닌 Application이다.
 
 ### 디폴트 메서드
+```
+for(int i = 0; i < list.size(); i++)
+  System.out.println(list.get(i));
+  
+list.forEach(System.out::println);
+```
+forEach는 Collections의 슈퍼인터페이스인 Iterable의 디폴트 메서드로 Collection을 구현한 기존의 코드에 영향을 주지 않는다.
+
+```
+interface Person {
+  long getId();
+  default String getName() { return "John Q. Public"; }
+}
+```
+
+Person을 구현하는 클래스는 getId는 반드시 구현해야 하고 getNames은 선택 사항이다.  
+디롶트 메서드는 인터페이스와 해당 인터페이스의 대부분 혹은 모든 메서드를 구현한 추상 클래스를 제공하는 고전적인 패턴(예를 들면, Collection/AbstractCollection 또는 WindowListener/WindowAdapter)의 종말을 선고했다.
+
+똑같은 메서드가 한 인터페이스의 디폴트 메서드로 정의되어 있고, 슈퍼크래스나 다른 인터ㅔㅍ이스의 메서드로도 정의되어 있는 경우 규칙.
+* 슈퍼클래스가 우선한다. 슈퍼클래스에서 구체적인 메서드를 제공하는 경우 이와 이름 및 파라미터 타입이 같은 디폴트 메서드는 단순히 무시된다.
+* 인터페이스들이 충돌한다. 어떤 슈퍼인터페이스에서 디폴트 메서드를 제공하고 또 다른 인터페이스에서(디폴트 메서드든 아니든) 이름 및 파라미터 타입이 같은 메서드를 제공하는 경우에는 해당 메서드를 오버라이드해서 충돌을 해결해야 한다.
 
 ### 인터페이스의 정적 메서드
+자바8부터는 인터페이스에 정적 메서드를 추가할 수 있다. 인터페이스의 정적 메서드를 금지해야 하는 기술적인 이유는 없었다. 단지 추상 명세라는 인터페이스의 정신에 어긋나는 것으로 보였을 뿐이다.  
 
 
 

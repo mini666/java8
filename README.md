@@ -2,57 +2,115 @@
 가장빨리만나는자바8
 
 ## 1장 람다표현식
+* 학심 내용
+  * 람다 표현식은 파라미터가 있는 코드 블럭이다.
+  * 코드 블록을 나중에 실행하고자 할 때 람다 표현식을 사용한다.
+  * 람다 표현식을 함수형 인터페이스로 변환할 수 있다.
+  * 람다 표현식은 자신을 감싸고 있는 유효 범위에 속한 사실상 final 변수를 접근할 수 있다.
+  * 메서드 레퍼런스와 생성자 레퍼런스는 각각 메서드와 생성자를 호출 없이 춤조한다.
+  * 이제 인터페이스에 실제 구현을 제공하는 디폴트 메서드와 정적 메서드를 추가할 수 있다.
+  * 여러 인터페이스의 디폴트 메서드들 사이의 충돌을 해결해야 한다.
+  
+### 람다 표현식 문법
+```
+class LengthComparator implements Comparator<String> {
+  public int compare(String first, String second) {
+    return Integer.compare(first.length(), second.length());
+  }
+}
+Arrays.sort(strings, new LengthComparator());
 
-### 연습문제
-#### 01. Arrays.sort 메서드에서 비교자 코드는 sort 호출과 같은 스레드에서 호출되는가. 다른 스레드에서 호출되는가?
+// 기존에는 compare를 위한 클래스를 만들어 넘겨줘야 했으나 이제는 그럴 필요 없다.
+Arrays.sort(strings, (String first, String second) -> Integer.compare(first.length(), second.length());
 
-#### 02. java.io.File 클래스의 listFiles(FileFilter)와 isDirectory 메서드를 이용해 주어진 디렉터리의 모든 서브디렉토리를 리턴하는 메서드를 작성하라. FileFilter 객체 대신 람다 표현식을 사용하라. 메서드 표현식을 이용해 같은 작업을 반복하라.
+// 람다 표현식이 여러 줄일 경우 {} 사용
+(String first, String second) -> {
+  if (first.length() < second.length()) return -1;
+  else if (first.length() > second.length()) return 1;
+  else return 0;
+}
 
-#### 03. java.io.File 클래스의 list(FilenameFilter) 메서드를 이용해 주어진 디렉토리에서 주어진 확장자를 지닌 모든 파일을 리턴하는 메서드를 작성하라. FilenameFilter가 아닌 람다 표현식을 사용하라. 이 람다 표현식이 자신을 감싸는 유효 범위에 있는 어느 변수를 캡처하는가?
+// 람다 표현식이 파라미터를 받지 않으면 빈 괄호 사용
+() -> { for (int i = 0; i < 1000; i++) doWork(); }
 
-#### 04. File 객체 배열이 주어졌을때 디렉토리가 파일보다 앞에 위치하고 각 그룹 안에서 요소들이 경로 이름에 따라 정렬되도록 정렬하라.
+// 파라미터 타입을 추정할 수 있는 경우 타입을 생략
+Comparator<String> comp = (first, second) -> Integer.compare(first.length(), second.length());
 
-#### 05. 다수의 ActionListener, Runnable 등을 포함하는 프로젝트 중 하나에서 파일을 불러와서 이러한 인터페이스를 람다 표현식으로 교체하라. 이 교체 작업으로 몇 행을 줄였는가? 코드가 더 읽기 쉬워졌는가? 메서드 레퍼런스를 사용할 수 있었는가?
+// 메서드에서 추정되는 타입 한개를 파라미터로 받으면 괄호를 생략할 수 있다.
+EventHandler<ActionEvent> listener = event -> System.out.println("Thanks for clicking!");
+```
 
-#### 06. Runnable에서 검사 예외를 다뤄야 하는 점이 싫지 않은가? 모든 검사 예외를 잡아내서 비검사 예외로 바꾸는 uncheck 메서드를 작성하라. 예를 들면, 다음과 같이 사용할 것이다.
+*메서드 파라미터와 마찬가지 방식으로 람다 파라미터에 어노테이션이나 final 수정자를 붙일 수 있다. `(final String name) -> ... (@NonNull String name) -> ...`*
 
-'''
-new Thread(uncheck(
-  () -> { System.out.println("Zzz"); Thread.sleep(1000); })).start();
-  // 여길 보자. catch (InterruptedException) 부분이 없다!
-'''
+람다 표현식의 결과 타입은 지정하지 않는다. 결과 타입은 항상 문맥으로부터 추정된다.
 
-힌트: run 메서드에서 모든 예외를 던질 수 있는 RunnableEx라는 인터페이스를 정의한다. 다음으로 public static Runnable uncheck(RunnableEx runner)를 구현한다. uncheck 함수 안에서 람다 표현식을 사용한다.
+### 함수형 인터페이스
+자바에는 Runnable, Comparator 등 코드 블럭을 캡슐화하는 수많은 기존 인터페이스가 있다. 람다는 이러한 기존 인터페이스와 호환된다.  
+단일 추상 메서드를 갖춘 인터페이스의 객체를 기대할 때 람다 표현식을 사용할 수 있다. 그리고 이러한 인터페이스를 함수형 인터페이스라고 한다.
 
+*Object 타입 변수에도 람다 표현식을 대입할 수 없다. Object는 함수형 인터페이스가 아니기때문이다.*
 
+자바 API는 java.util.function 패키지에 다수의 아주 범용적인 함수형 인터페이스를 정의하고 있다. 이러한 인터페이스 중 하나인 BiFunction<T, U, R>은 파라미터 타입이 T와 U고, 리턴 타입이 R인 함수를 나타낸다. 문자열 비교 람다를 BiFunction 타입 변수에 저장할 수 있다. `BiFunction<String, String, Integer> com = (first, second) -> Integer.compare(first.length(), second.length());` 
 
-#### 07. Runnable 인스턴스 두 개를 파라미터로 받고, 첫번째 인스턴스를 실행한 후 두번째를 실행하는 Runnable을 리턴하는 andThen 이라는 정적메서드를 작성하라. main 메서드에서 andThen 호출에 람다 표현식 두개를 전달하고, 결과로 받은 인스턴스를 실행하라.
+*함수형 인터페이스에 @FunctionalInterface 어노테이션을 붙일 수 있다. 이렇게 하면 두가지 장점이 있다. 첫째, 컴파일러에서 어노테이션이 붙은 엔터티가 단일 추상 메서드를 갖춘 인터페이스인지 검사한다. 둘째, javadoc 페이지에서 해당 인터페이스가 함수형 인터페이스임을 알리는 문장을 포함한다. 어노테이션을 반드시 사용해야 하는 것은 아니다. 정의에 따르면, 단일 추상 메서드를 갖춘 모든 인터페이스가 곧 함수형 인터페이스다. 그럼에도 @FunctionalInterface 어노테이션을 사용하는 것은 좋은 생각이다.*
 
-#### 08. 람다 표현식이 다음과 같은 향상된 for 루프에 있는 변수를 캡처할 때 무슨 일이 일어나는가?
+마지막으로, 람다 표현식이 함수형 인터페이스의 인스턴스로 변환될 때 검사 예외가 문제가 된다는 점을 유의하기 바란다. 람다 표현식의 몸체에서 검사 예외를 던질 수 있는 경우, 해당 예외가 대상 인터페이스의 추상 메서드에 선언되어 있어야 한다.
 
 ```
-String[] names = { "Perter", "Paul", "Mary" };
-List<Runnable> runners = new ArrayList<>();
-for (String name : names) {
-  runners.add(() -> System.out.println(name));
+Runnable sleeper = () -> { System.out.println("Zzz"); Thread.sleep(1000); };  // 오류: Thread.sleep은 검사 예외인 InterruptedException을 던진다.
+```
+
+Runnable.run 메서드는 예외를 던질 수 없기 때문에 람다 표현식의 몸체에서 예외를 잡던지 return null을 추가하여 Callable<Void>로 바꿔야 한다.
+
+### 메서드 레퍼런스
+다른 코드에 전달하려고 하는 액션을 수행하는 메서드가 이미 존재할 경우
+
+```
+button.setOnAction(event -> System.out.println(event));
+// 메서드 레퍼런스 사용
+button.setOnAction(System.out::println);
+
+// 대소문자를 가리지 않고 문자열을 정렬하고 싶은 경우
+Arrays.sort(strings, String::compareToIgnoreCase) 
+```
+
+::연산자는 객체 또는 클래스와 메서드 이름을 구분하려 세가지 주요 경우가 있다.
+* object::instanceMethod
+* Class::staticMethod
+* Class::instanceMethod
+
+처음 두 경우에는 메서드의 파리미터를 제공하는 람다 표현식에 해당한다. `System.out::println`은 `System.out.println(x)`와 같다. 마찬가지로 `Math::pow`는 `(x, y) -> Math.pow(x, y)`에 해당한다.  
+세번째 경우에서는 첫번째 파라미터가 해당 메서드의 대상이 된다. 예를 들어 `String::compareToIgnoreCase`는 `(x, y) -> x.compareToIgnoreCase(y)`와 같다.
+
+*이름이 같은 여러 메서드가 오버로드되어 있을 때는 컴파일러가 의도한 문맥을 찾으려고 할 것이다. 예를 들어 Math.max 메서드는 정수와 부동소수점 수를 받는 버전이 있다. 이중 어느 버전이 선택되는지는 Match::max가 변환되는 대상 함수형 인터페이스의 메서드 파리미터에 의존한다. 람다 표현식과 마찬가지로, 메서드 레퍼런스는 독립적으로 존재하지 않고 항상 함수형 인터페이스의 인스턴스로 변환된다.*
+
+메서드 레퍼런스에서 this 파라미터를 캡처할 수 있다. `this::equals`는 `x -> this.equals(x)`와 같다. super도 사용할 수 있다.
+
+```
+class Greeter {
+  public void greet() {
+    System.out.println("Hello, world!");
+  }
+}
+
+class ConcurrentGreeter extends Greeter {
+  public void greet() {
+    Thread t = new Thread(super::greet);
+    t.start();
+  }
 }
 ```
 
-규칙에 맞는 작업인가? 각 람다 표현식이 다른 값을 캡처하는가? 아니면 모두 마지막 값을 얻는가? 만일 전통적인 루프인 for (int i = 0; i < names.length; i++)를 사용하면 무슨 일이 일어나는가?
+*이너 클래스에서는 바깥쪽 클래스의 this 레퍼런스를 EnclosingClass.this::method 또는 EnclosingClass.super::method로 캡처할 수 있다.*
 
-#### 09. Collection으로부터 Collection2라는 서브클래스를 만들고, filter가 true를 리턴하는 각 요소를 대상으로 액션(action)을 적용하는 디폴트 메서드인 void forEachIf(Consumer<T> action, Predicate<T> filter)를 추가하라. 이 디폴트 메서드를 어떻게 사용할 수 있는가?
-
-#### 10. Collections 클래스의 메서드들을 살펴보자. 만일 하루 동안 왕이 된다면 어느 인터페이스에 각 메서들르 둘 것인가? 각 메서드는 디폴트 메서드가 될 것인가? 정적 메서드가 될 것인가?
-
-#### 11. 두 인터페이스 I와 J를 구현하는 클래스가 있다고 가정하자. 각각은 void f() 메서드를 포함한다. f가 I의 추상메서드, 디폴트 메서드 또는 정적 메서드인 경우와 J의 추상메서드, 디폴트 메서드 또는 정적메서드인 경우 정확히 무슨 일이 있어나는가? 클래스가 슈퍼클래스 S를 확장하고 인터페이스 I를 구현하며, 둘 모두 void f() 메서드를 포함하는 경우에 대해서도 무슨 일이 일어나는지 설명하라.
-
-#### 12. 과거에는 인터페이스에 메서드를 추가하면 기존 코드를 망가뜨릴 수 있기 때문에 잘못된 형태라고 했다. 하지만 이제는 디폴트 구현을 함께 제공한다면 새로운 메서드를 추가하는 것도 괜찮다고 한다. Collection 인터페이스의 새로운 Stream 메서드가 레거시 코드 컴파일을 실패하게 하는 시나리오를 설명하라. 바이너리 호환성은 어떠한가? JAR 파일에 들어 있는 레거시 코드는 여전히 실행될 것인가?
+### 생성자 레퍼런스
 
 
+### 변수 유효 범위
 
+### 디폴트 메서드
 
-
-
+### 인터페이스의 정적 메서드
 
 
 
@@ -1115,6 +1173,233 @@ Path root = p.getRoot();      // / (상대경로일때는 null
 *경우에 따라 Path 인터페이스 대신 File 클래스를 사용하는 레거시 API와 상호 동작해야 할 수도 있다. Path 인터페이스는 toFile 메서드를 포함하며, File 클래스는 toPath 메서드를 포함한다.*
 
 #### 파일 읽기 및 쓰기
+```
+byte[] bytes = Files.readAllBytes(path);
+String content = new String(bytes, StandardCharsets.UTF_8);
+
+// 행으로 읽기
+List<String> lines = Files.readAllLines(path);
+// 파일에 쓰기
+Files.write(path, content.getBytes(StandardCharsets.UTF_8));
+Files.write(path, lines); // 문자열 컬렉션 파일에 쓰기
+
+// 파일에 추가하기
+Files.write(path, lines, StandardOpenOption.APPEND);
+
+// 파일이 클 때
+InputStream in = Files.newInputStream(path);
+OutputStream out = Files.newOutputStream(path);
+Reader reader = Files.newBufferedReader(path);
+Writer writer = Files.newBufferedWriter(path);
+
+// InputStream의 내용을 파일에 저장하고 싶을 때
+Files.copy(in, path);
+// 반대
+Files.copy(path, out);
+```
+
+*기본적으로 Files의 모든 문자 읽기 또는 쓰기 메서드는 UTF-8 인코딩을 사용한다. 다른 인코딩이 필요한 (바라건대 드문) 경우, Charset 인자를 제공할 수 있다. 플랫폼 디폴트를 사용하는 String 생성자와 getBytes 메서드와는 대조적이다. 일반적으로 사용하는 데스크톱 운영 체제는 여전히 UTF-8과 호환되지 않는 구식 8비트 인코딩을 사용한다. 따라서 문자열과 바이트 사이에서 변환할 때는 인코딩을 지정해야 한다.*
+
+#### 파일과 디렉토리 생성하기
+새로운 디렉토리 생성 `Files.createDirectory(path);`  
+중간 경로를 포함하여 생성하려면 `Files.createDirectories(path);`  
+빈 파일 생성 `Files.createFile(path);` 파일이 이미 존재하는 경우 예외발생. 파일 존재 검사와 생성은 원자적으로 동작함.   
+`path.exists()` 메서드 호출은 주어진 파일 또는 디렉토리가 존재하는지 검사하지만, 리턴한 시점에는 존재하지 않을 수 있다.  
+ 지정 위치 또는 시스템 고유의 위치에 임시 파일 또는 디렉토리를 생성하는 편의 메서드
+ 
+ ```
+ // prefix, suffix는 널 일 수 있음.
+ Path newPath = Files.createTempFile(dir, prefix, suffix);
+ Path newPath = Files.createTempFile(prefix, suffix);
+ Path newPath = Files.createTempDirectory(dir, prefix);
+ Path newPath = Files.createTempDirectory(prefix);
+ ```
+ 
+#### 파일 복사, 이동, 삭제하기
+파일 복사 `Files.copy(fromPath, toPath);`  
+파일 이동 `Files.move(fromPath, toPath);` 빈 디렉토리 이동에도 사용.  
+존재하는 대상을 덮어쓰려면 REPLACE\_EXISTING 옵선 사용. 모든 파일 속성을 복사하려면 COPY\_ATTRIBUTES 옵션 사용. `Files.copy(fromPath, toPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);`  
+이동이 원자적으로 동작해야 함을 명시할 수 있다. ATOMIC\_MOVE 사용. `Files.move(fromPath, toPath, StandardCopyOption.ATOMIC_MOVE);`  
+파일 삭제 `boolean deleted = Files.deleteIfExists(path);` 빈 디렉토리도 지울 수 있다.   
+
+*비어있지 않은 디렉토리를 삭제하거나 복사하는 편의 메서드는 없다. FileVisitor를 사용한다.*
+
+### equals, hashCode, compareTo 메서드 구현
+자바7은 equals, hashCode에서 널 값을 다루는 작업과 compareTo에서 숫자 비교 작업을 더 편리하게 해주는 몇 가지 메서드를 도입.
+
+#### 널 안전 동등성 테스트
+```
+public class Person {
+  private String first;
+  private String second;
+  ...
+  
+  public boolean equals(Object otherObject) {
+    if (this == otherObject) return true;
+    if (otherObject == null) return false;
+    if (getClass() != otherObject.getClass()) return false;
+    Person other = (Person)otherObject;
+    ...
+  }
+  
+  // 다음과 같이 변경
+  public boolean equals(Object otherObject) {
+    return Objects.equals(first, other.first) && Objects.equals(last, other.last);
+  }
+}
+```
+
+#### 해시 코드 계산하기
+앞의 Person 클래스에 대한 히시 코드 구현
+
+```
+public int hashCode() {
+  return 31 * Objects.hashCode(first) + Objects.hashCode(last); // Objects.hashCode는 null 인자의 경우 0을 리턴.
+  return Objects.hash(first, last); // 어떤 값이든 연속해서 지정할 수 있으며, 지정한 값들의 해시 코드를 결합.
+}
+```
+
+*Objects.hash는 단순히 Arrays.hashCode를 호출한다. Arrays.hashCode는 자바5부터 존재해왔지만 가변 인자 메소드가 아니어서 다소 불편하다.*  
+*예전부터 toString 대신 String.valueOf(obj)를 호출하는 널 안전 호출 방법이 있었다. String.valueOf(obj)는 obj가 null이면 문자열 "null"을 리턴한다. 이 방법이 마음에 들지 않으면 Object.toString(obj, "")처럼 Object.toString을 사용하고 null인 경우 사용할 값을 전달할 수 있다.*
+
+#### 숫자 타입 비교하기
+비교자에서 정수들을 비교할때 어떤 음수 또는 양수든 리턴할 수 있기 때문에 정수 사이의 차이를 리턴하고 싶을 수 있다.
+
+```
+public int compareTo(Point other) {
+  int diff = x - other.x;
+  if (diff != 0) return diff;
+  return y - other.y;
+}
+
+// other.x가 음수인 경우 오버플로우
+public int compareTo(Point other) {
+  int diff = Integer.compare(x, other.x); // 오버플로우 위험이 없다.
+  if (diff != 0) return diff;
+  return Integer.compare(y, other.y);
+}
+```
+
+### 보안 요구 사항
+원본 참고
+
+### 기타 변경 사항
+#### 문자열을 숫자로 변환하기
+```
+double x = Double.parseDouble("+1.0");  // 예전에도 지금도 에러 없이 처리.
+int n = Integer.parseInt("+1");         // 1.7부터 처리
+```
+
+문자열로부터 int, long, short, byte, BigInteger 값을 만들어내는 다양한 메서드에서 이 문제가 모두 고쳐짐.  
+parse(Int|Long|Short|Byte)외에 16진수와 8진수 입력을 다루는 decode 메서드, 래퍼 객체를 돌려주는 valueOf 메서드들이 있다. BigInteger(String) 생성자 또한 업데이터 되었다.
+
+#### 전역 로거
+간단한 경우에도 로깅의 사용을 장려하기 위해 Logger 클래스는 전역 로거 인스턴스를 포함한다. 언제라도 추적 문장을 `System.out.println("x=" + x);` 대한 `Logger.global.finest("x=" + x);` 형태로 추가할 수 있게 가능하면 사용하기 쉽게 만들어졌다.
+
+유감스럽게도 이 인스턴스 변수는 어딘가에서 초기화되어야 하며, 만일 다른 로깅이 정적 초기화 코드에서 발생하면 교착 상태를 일으킬 수 있다. 따라서 자바6에서는 Logger.global 사용을 권장하지 않는다. 대신 `Logger.getLogger(Logger.GLOBAL_LOGGER_NAME)`을 호출해야 하는데 누구도 이 방법을 빠르고 쉬운 로깅이라고 생각하지 않는다. 자바7에서는 대신 `Logger.getGlobal()`을 호출할 수 있으며 나쁘지 않는 방법이다.
+
+#### 널 검사
+Objects 클래스는 파리미터의 널 검사를 편리하게 해주는 requireNonNull 메서드를 제공.
+
+```
+public void process(String directions) {
+  this.directions = Objects.requireNonNull(directions);
+  ...
+  this.directions = Objects.requireNonNull(directions, "directions must not be null");
+}
+```
+
+#### ProcessBuilder
+ProcessBuilder를 이용하면 작업 디렉토리를 변경할 수 있다. 자바7은 프로세스의 표준 입력, 표준 출력, 표준 오류 스트림을 파일로 연결하는 편의 메서드를 제공.
+
+```
+ProcessBuilder builder = new ProcessBuilder("grep", "-o", "[A-za-z_][A-Za-z_0-9]*");
+builder.redirectInput(Paths.get("Hello.java").toFile());
+builder.redirectOutput(Paths.get("identifiers.txt").toFile());
+Process process = builder.start();
+process.waitFor();
+```
+
+*자바8부터는 Process 클래스에서 타임아웃을 받는 waitFor 메서드를 제공한다. boolean completed = process.waitFor(1, TimeUnit.MINUTES);*
+
+자바7에서는 ProcessBuilder에 inheritIO 메서드도 추가. 프로세스의 표준 입력, 표준 출력, 표준 오류 스트림을 자바 프로그램의 표준 입력, 표준 출력, 표준 오류 스트림으로 설정한다.  
+다음은 ls 명령의 출력을 System.out으로 보낸다.
+
+```
+ProcessBuilder builder = new ProcessBuilder("ls", "-al");
+builder.inheritIO();
+builder.start().waitFor();
+```
+
+#### URLClassLoader
+```
+URL[] urls = {
+  new URL("file:junit-4.11.jar"),
+  new URL("file:hamcrest-core-1.3.jar")
+};
+URLClassLoader loader = new URLCloassLoader(urls);
+Class<?> klass = loader.loadClass("org.junit.runner.JUnitCore");
+
+// URLClassLoader는 자바7에서 AutoClosable를 구현한다.
+try (URLClassLoader loader = new URLClassLoader(rls)) {
+  Class<?> klass = loader.loadClass("org.junit.runner.JUnitCore");
+  ...
+}
+```
+
+#### BitSet
+BitSet은 일련의 비트로 구현된 정수 집합이다. 만일 집합이 정수 i를 포함하면 i번째 비트가 설정된다. 따라서 효율적인 집합 연산을 가능하게 한다. 합집합/교집합/여집합은 단순한 비트 단위 or/and/not 연산이다.  
+자바7dms 비트 집합을 생성하는 메서드를 추가했다.
+
+```
+byte[] bytes = {(byte)0b10101100, (byte)0b00101000 };
+BitSet primes = BitSet.valueOf(bytes);    // 2, 3, 5, 7, 11, 13
+long[] longs = { 0x100010116L, 0x1L, 0x1L, 0L, 0x1L };
+BitSet powersOfTwo = BitSet.valueOf(longs);   // 1, 2, 4, 8, 16, 32, 64, 128, 256
+
+// 역으로 비트 집합으로부터 각 배열을 만든느 메서드는 toByteArray와 toLongArray다.
+byte[] bytes = powersOfTwo.toByteArray();     // 0b0010110, 1, 1, 0, 1, 0, 0, 0, 1, ...
+```
+
+*자바8부터 BitSet은 IntStream을 돌려주는 stream 메서드를 포함한다.*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

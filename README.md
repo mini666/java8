@@ -1,5 +1,4 @@
-# java8
-가장빨리만나는자바8
+# Java8
 
 ## 1장 람다표현식
 * 핵심 내용
@@ -204,14 +203,98 @@ Person을 구현하는 클래스는 getId는 반드시 구현해야 하고 getNa
 
 ### 인터페이스의 정적 메서드
 자바8부터는 인터페이스에 정적 메서드를 추가할 수 있다. 인터페이스의 정적 메서드를 금지해야 하는 기술적인 이유는 없었다. 단지 추상 명세라는 인터페이스의 정신에 어긋나는 것으로 보였을 뿐이다.  
+지금까지는 일반적으로 인터페이스와 동반하는 클래스에 정적 메서드를 두었다. 자바 표준 라이브러리에서 Collection/Collections 또는 Path/Paths 같은 인터페이스와 유틸리티 클래스 쌍을 찾아볼 수 있다.  
+Paths 클래스의 `Paths.get("jdk1.8.0", "jre", "bin")` 과 같은 메서드를 Path에 추가할 수 있고, Collections의 `public static void shuffle(List<?> list)`도 List 인터페이스의 인스턴스 메서드(`public default void shuffle()`)로 옮겨 올 수 있다.
 
+팩토리 메서드인 경우 메서드를 호출할 대상 객체가 없으므로 동작하지 않는다. 바로 이 부분이 정적 인터페이스 메서드가 등장할 곳이다. 예를 들어 다음은 List 인터페이스의 정적 메서드가 될 수 있다.
 
+```
+// o 인스턴스 n개로 구성된 리스트를 생성한다.
+public static <T> List<T> nCopies(int n, T o)
+```
+
+이 경우 Collections.nCopies(10, "Fred") 대신 List.nCopies(10, "Fred")를 호출할 수 있고 코드를 읽는 사람은 결과가 List 임을 분명히 알 수 있다.
+
+자바8에서는 상당히 많은 인터페이스에 정적 메서드를 추가했다. 예를 들어, Comparator 인터페이스는 '키 추출' 함수를 받아서 추출된 키들을 비교하는 비교자를 돌려주는 아주 유용한 정적 comparing 메서드를 제공한다. Person 객체를 이름으로 비교하려면 `Comparator.comparing(Person::name)`을 사용하면 된다.
+
+이장에서는 람다 표현식 `(first, second) -> Integer.compare(first.length(), seocnd.length()`를 이요해서 문자열을 길이로 비교했지만 정적comparing 메서드를 이용하면 더 낫다. `Comparator.comparing(String::length)`를 사용하면 된다.
 
 ## 2장 스트림 API
+* 핵심 내용
+  * 반복자는 특정 순회 전략을 내포하므로 효율적인 동시 실행을 방해한다.
+  * 컬렉션, 배열, 발생기, 반복자로부터 스트림을 생설할 수 있다.
+  * 요소를 선택하는데 filter를 사용하고 요소를 변환하는데 map을 사용한다.
+  * 스트림을 변환하는 다른 연산으로는 limit, distinct, sorted가 있다.
+  * 스트림에서 결과를 얻으려면 count, max, min, findFirst 또는 findAny 같은 리덕션 연산자를 사용한다. 이들 메서드 중 몇몇은 Optional 값을 리턴한다.
+  * Optional 타입은 null 값을 다루는 안전한 대안을 목적으로 만들어졌다. Optional 타입을 안전하게 사용하려면 ifPresent와 orElse 메서드를 이용한다.
+  * 스트림 결과들을 컬렉션, 배열, 문자열 또는 맵으로 모을 수 있다.
+  * Collections 클래스의 groupingBy와 partitioningBy 메서드는 스트림의 내용을 그룹으로 분할하고 각 그룹의 결과를 얻을 수 있게 해 준다.
+  * 기본 타입인 int, long, double용으로 특화된 스트림이 있다.
+  * 병렬 스트림을 이용할 때는 부가 작용(Side Effect)을 반드시 피해야 하고, 순서 제약을 포기하는 방안도 고려한다.
+  * 스트림 라이브러리를 사용하려면 몇 가지 함수형 인터페이스와 친숙해져야 한다.
+  
+### 반복에서 스트림 연산으로
+```
+String contents = new String(Files.readAllBytes(Paths.get("alice.txt")), StandardCharsets.UTF_8);
+List<String> words = Arrays.asList(contents.split("[\\P{L}]+"));
+
+int count = 0;
+for (String w : words) {
+  if (w.length > 12) count++;
+}
+
+long count = words.stream().filter(w -> w.length() > 12).count();
+long count = words.parallelStream().filter(w -> w.length() > 12).count();   // 병렬 처리
+```
+
 * 스트림과 컬렉션의 차이
   * 스트림은 요소를 보관하지 않는다. 요소들은 하부의 컬렉션에 보관되거나 필요할 때 생성된다.
   * 스트림 연산은 원본을 변경하지 않는다. 대신 결과를 담은 새로운 스트림을 반환한다.
   * 스트림 연산은 가능하면 지연 처리된다.지연 처리란 결과가 필요하기 전에는 실행되지 않음을 의미한다. 예를 들어, 긴 단어를 모두 세는 대신 처음 5개 긴 단어를 요청하면, filter 메서드는 5번째 일치 후 필터링을 중단한다. 결과적으로 심지어 무한 스트림도 만들 수 있다.
+
+스트림을 이용해 작업할 때 연산들의 파이프라인을 세단계로 설정한다.
+1. 스트림을 생성한다.
+2. 초기 스트림을 다른 스트림으로 변환하는 중간 연산들을 하나 이상의 단계로 지정한다.
+3. 결과를 산출하기 위해 최종 연산을 적용한다. 이 연산은 앞선 지연 연산들의 실행을 강제한다. 이후로는 해당 스트림을 더는 사용할 수 없다.
+
+*스트림 연산들은 요소를 대상으로 실행될 때 스트림에서 호출된 순서로 실행되지 않는다. 앞선 예세에서 count가 호출되기 전에는 아무일도 일어나지 않는다. count 메서드가 첫번째 요소를 요청하면, filter 메서드가 길이 > 12인 요소를 찾을 때까지 요소들을 요청하기 시작한다.*
+
+### 스트림 생성
+배열은 Stream.of 메서드를 사용한다.
+
+```
+Stream<String> words = Stream.of(contents.split("[\\P{L{]+"));
+
+// of 메서드는 가변인자를 받는다.
+Stream<String> song = Stream.of("gently", "down", "the", "stream");
+
+// 배열의 일부에서 스트림 생성
+Arrays.stream(array, from, to);
+
+// 요소가 없는 스트림을 생성
+Stream<String> silence = Stream.empty();    // Stream.<String>empty(); 와 같다.
+
+// Stream 인터페이스는 무한 스트림을 만드는 generate와 iterate 제공
+// generate는 인자없는 함수(Supplier<T>)를 받는다.
+Stream<String> echos = Stream.generate(() -> "Echo");
+// 난수 스트림
+Stream<Double> randoms = Stream.generate(Math::random);
+
+// 0 1 2 3 ... 같은 무한 수열을 만들려면 iterate 사용. seed 값과 함수(UnaryOperator<T>)를 받고, 해당 함수를 이전 결과에 반복적으로 적용한다.
+Stream<BigInteger> integers = Stream.iterate(BigInteger.ZERO, n -> n.add(BigInteger.ONE));
+```
+
+*자바8은 스트림을 돌려주는 다수의 메서드를 추가했다. 예를 들면 Pattern 클래스는 이제 정규 표현식을 이용해 CharSequence를 분리하는 splitAsStream 메서드를 포함한다. 다음 문장을 사용해 문자열을 단어들로 분리할 수 있다. `Stream<String> words = Pattern.compile("[\\P{L}]+").splitAsStream(contents);` 정적 Files.lines 메서드는 파일에 있는 모든 행의 Stream을 리턴한다. Stream 인터페이스는 AutoCloseable을 슈퍼인터페이스로 둔다. 따라서 스트림에 close 메서드를 호출할 때 하부 파일 또한 닫힌다.* 
+
+### filter, map, flatMap 메서드
+
+
+
+
+
+
+
+
 
 ## 3장 람다를 이용한 프로그래밍
 

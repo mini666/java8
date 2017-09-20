@@ -287,6 +287,31 @@ Stream<BigInteger> integers = Stream.iterate(BigInteger.ZERO, n -> n.add(BigInte
 *자바8은 스트림을 돌려주는 다수의 메서드를 추가했다. 예를 들면 Pattern 클래스는 이제 정규 표현식을 이용해 CharSequence를 분리하는 splitAsStream 메서드를 포함한다. 다음 문장을 사용해 문자열을 단어들로 분리할 수 있다. `Stream<String> words = Pattern.compile("[\\P{L}]+").splitAsStream(contents);` 정적 Files.lines 메서드는 파일에 있는 모든 행의 Stream을 리턴한다. Stream 인터페이스는 AutoCloseable을 슈퍼인터페이스로 둔다. 따라서 스트림에 close 메서드를 호출할 때 하부 파일 또한 닫힌다.* 
 
 ### filter, map, flatMap 메서드
+스트림 변환은 한 스트림에서 데이터를 읽고 변환된 데이터를 다른 스트림에 넣는다.
+
+```
+List<String> wordList = ...;
+Stream<String> words = wordList.stream();
+Stream<String> longWords = words.filter(w -> w.length() > 12);
+```
+
+필터의 인자는 Predicate<T>이다.  
+스트림에 있는 값들을 특정 방식으로 변환하고 싶을때는 map을 사용한다. `Stream<String> lowerCaseWords = words.map(String::toLowerCase);` `Stream<Character> firstChars = words.map(s -> s.charAt(0));`  
+값들의 스트림을 리턴하는 함수가 있다고 하자.
+
+```
+public static Stream<Character> characterStream(String s) {
+  List<Character> result = new ArrayList<>();
+  for (char c : s.toCharArray()) result.add(c);
+  return result.stream();
+}
+```
+
+characterStream("boat")는 스트림 ['b', 'o', 'a', 't']를 리턴한다. 이 메서드를 문자열의 스트림에 맵핑한다고 하자. `Stream<Stream<Character>> result = words.map(w -> characterStream(w));` 결과로 [...['y', 'o', 'u', 'r'], ['b', 'o', 'a', 't'], ...] 처럼 스트림들로 구성된 스트림을 얻는다. 이 스트림을 문자들의 스트림 [... 'y', 'o', 'u', 'r', 'b', 'o', 'a', 't', ...]로 펼쳐내려면 map 대신 flatMap을 사용한다. `Stream<Character> letters = words.flatMap(w ->characterStream(w))`  
+
+*스트림 외의 클래스에서도 flatMap 메서드를 접할 것이다. flatMap은 컴퓨터 과학에서 일반적인 개념이다. 제네릭 타입 G(예를 들면 Stream), 타입 T를 G<U>로 변환하는 함수 f 그리고 타입 U를 G<V>로 변환하는 함수 g가 있다고 하자. 그러면 flatMap을 사용해서 이 함수들을 합성 할 수 있다(즉, 먼저 를 적용한 후 g를 적용한다). 이는 모나드 이른에서 핵심 개념이다.*
+
+### 서브스트림 추출과 스트림 결과
 
 
 

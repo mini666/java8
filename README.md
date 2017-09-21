@@ -309,14 +309,254 @@ public static Stream<Character> characterStream(String s) {
 
 characterStream("boat")는 스트림 ['b', 'o', 'a', 't']를 리턴한다. 이 메서드를 문자열의 스트림에 맵핑한다고 하자. `Stream<Stream<Character>> result = words.map(w -> characterStream(w));` 결과로 [...['y', 'o', 'u', 'r'], ['b', 'o', 'a', 't'], ...] 처럼 스트림들로 구성된 스트림을 얻는다. 이 스트림을 문자들의 스트림 [... 'y', 'o', 'u', 'r', 'b', 'o', 'a', 't', ...]로 펼쳐내려면 map 대신 flatMap을 사용한다. `Stream<Character> letters = words.flatMap(w ->characterStream(w))`  
 
-*스트림 외의 클래스에서도 flatMap 메서드를 접할 것이다. flatMap은 컴퓨터 과학에서 일반적인 개념이다. 제네릭 타입 G(예를 들면 Stream), 타입 T를 G<U>로 변환하는 함수 f 그리고 타입 U를 G<V>로 변환하는 함수 g가 있다고 하자. 그러면 flatMap을 사용해서 이 함수들을 합성 할 수 있다(즉, 먼저 를 적용한 후 g를 적용한다). 이는 모나드 이른에서 핵심 개념이다.*
+*스트림 외의 클래스에서도 `flatMap` 메서드를 접할 것이다. `flatMap`은 컴퓨터 과학에서 일반적인 개념이다. 제네릭 타입 G(예를 들면 Stream), 타입 T를 G<U>로 변환하는 함수 f 그리고 타입 U를 G<V>로 변환하는 함수 g가 있다고 하자. 그러면 flatMap을 사용해서 이 함수들을 합성 할 수 있다(즉, 먼저 를 적용한 후 g를 적용한다). 이는 모나드 이른에서 핵심 개념이다.*
 
 ### 서브스트림 추출과 스트림 결과
+`stream.limit(n)` 호출은 n개 요소 이후(n보다 짧은 경우는 모두) 끝나는 새로운 스트림을 리턴한다.  
+다음은 난수 100개를 포함하는 스트림을 리턴한다.
 
+```
+Stream<Double> randoms = Streams.generate(Math::random).limit(100);
+// skip은 버린다.
+Stream<String> words = Stream.of(contents.split("[\\P{L}]+")).skip(1);
+// concat은 두 스트림을 연결한다.
+Stream<Character> combined = Stream.concat(characterStream("Hello"), charaterStream("World"));
+```
 
+*`peek` 메서드는 원본과 동일한 요소들을 포함하는 다른 스트림을 돌려주짐나, 전달받은 함수를 요소 추출 시마다 호출한다. 따라서 디버깅 수행때 유용하다.*
 
+```
+Object[] powers = Stream.iterate(1.0, p -> p * 2).peek(e -> System.out.println("Fetching " + e)).limit(20).toArray();
+```
+*이 방법으로 `iterte` 메서드가 리턴하는 무한 스트림이 지연 처리됨을 확인할 수 있다.*
 
+### 상태 유지 변환
+지금까지 살펴본 스트림 변환은 무상태 변환이다. 다시 말해 필터링 또는 맵핑도니 스트림에서 요소를 추출할때 결과가 이전 요소에 의존하지 않는다. 몇가지 상태 유지 변환도 존재한다. 예를들어 distinct 메서드는 중복을 제거하는 점을 제외하면 원본 스트림으로부터 요소들을 같은 순서로 돌려주는 스트림을 리턴한다. 이 경우 스트림은 이미 만난 요소들을 확실히 기억해야 한다.
 
+```
+Stream<String> uniqueWords =
+  = Stream.of("merrily", "merrily", "merirly", "gently").distinct();
+```
+  
+`sorted` 메서드는 요소들을 돌려주기 전에 반드시 전체 스트림을 보고 정렬해야 한다. 무한 스트림은 정렬할 수 없다. `sorted` 메서드는 여러 버전이 있는데 한 버번은 Comparable 요소들의 스트림을 대상으로 작업하고 또 다른 버전은 Comparator를 받은다.
+
+```
+Stream<String> longestFirst = words.sorted(Comparator.comparing(String::Length).reversed()));
+```
+
+`sorted` 메서드는 정렬 과정이 스트림 파이르파인의 일부일때 유용하다.
+
+*`Collections.sort` 메서드는 컬렉션을 직접 정렬한다. 한편 `Stream.sorted` 메서드는 새롭게 정렬된 스트림을 리턴한다.*
+
+### 단순 리덕션
+단순 리덕션으로 `count, min, max` 가 있는데 이들 메서드는 결과를 감싸고 있거나 결과가 없음을 나타내는 Optional<T> 값을 리턴한다.
+
+```
+Optional<String> largest = words.max(String::compareToIgnoreCase);
+if (largest.isPresent()) {
+  System.out.println("largest: " + largest.get());
+}
+```
+
+`firstFirst` 메서드는 비어 있지 않은 컬렉션에서 첫번째 값을 리턴한다. 종종 이 메서드를 filter 메서드와 결합하면 유용하다. 존재한다면 글자 Q로 시작하는 첫번째 단어를 찾는다.
+
+```
+Optional<String> startWithQ =
+  words.filter(s -> s.startsWith("Q")).findFirst());
+```
+
+첫번째 값은 물론 어떤 일치 결과든 괜찮다면 `findAny` 메서드를 사용한다. 이 메서드는 스트림을 병렬화할때 유용한데, 이 경우 조사 대상 세그먼트들에서 처음 일치가 발견되면 계산을 완료하기 때문이다.
+
+```
+Optional<String> startWithQ =
+  words.parallel().filter(s -> s.starstWith("Q")).findAny();
+```
+
+단순히 일치하는 요소가 있는지 알고 싶은 경우에는 `anyMatch`를 사용한다. 이 메서드는 Preficate 인자를 받으므로 filter를 사용할 필요가 없다.
+
+```
+boolean aWordStartWithQ =
+  words.parallel().anyMatch(s -> s.starstWith("Q"));
+```
+
+모든 요소가 Predicate와 일치하거나 아무것도 일치하지 않을때 true를 리턴하는 `allMatch`와 `noneMatch` 메서드도 있다. 이들 메서드는 항상 전체 스트림을 검사하지만, 여전히 병렬 실행을 통해 이점을 얻을 수 있다.
+
+### 옵션 타입
+Optional<T> 객체는 T 타입 객체 또는 객체가 없는 경우의 래퍼다. Optional<T>는 객체 또는 null을 가리키는 T 타입 레퍼런스보다 안전한 대안으로 만들어졌다. 하지만 올바르게 사용할 경우에만 더 안전하다.  
+`get` 메서드는 감싸고 있는 요소가 존재할 대는 요소를 얻고, 그렇제 않으면 `NoSuchElementException`을 던진다.
+
+```
+Optional<T> optionalValue = ...;
+optionalValue.get().someMethod();
+
+// 위 예제는 다음 예제보다 안전할 것이 없다.
+T value = ...
+value.someMethod();
+```
+
+`isPresent` 메서드는 `Optional<T>` 객체가 값을 포함하는지 알려준다.
+
+```
+if (optionalValue.isPresent()) optionalValue.get().someMethod();
+// 위 예제가 다음보다 쉽지는 않다.
+if (value != null) value.someMethod();
+```
+
+이제 Optional 값을 이용해 작업하는 방법을 알아보자.
+
+#### 옵션 값 다루기
+`Optional`을 효과적으로 사용하는 핵심은 **올바른 값**을 소비하거나 **대체 값을 생산**하는 메서드를 사용하는 것이다.  
+`ifPresent` 메서드는 함수를 받는 두번째 형태가 있다. 옵션 값이 존재하면 해당 함수로 전달되며 그렇지 않으면 아무 일도 일어나지 않는다. if문을 사용하는 대신 다음과 같이 호출할 수 있다. `optionalValue.isPresent(v -> v 처리);` 예를 들어, 값이 존재하는 경우 집합에 해당 값을 추가하려고 할때는 다음과 같이 호출한다. `optionalValue.ifPresent(v -> results.add(v));` 또는 `optionalValue.ifPresent(results:add);`  
+함수를 받는 `ifPresent` 버전을 호출할 때는 값이 리턴되지 않는다. 따럿 결과를 처리하고 싶은 경우에는 대신 map을 사용한다. `Optional<Boolean> added = optionalValue.map(results::add);` 이제 `added`는 세가지 값(true/false/빈 Optional 중 하나를 가진다.
+
+옵션 값이 없을때 대체 값 사용.
+
+```
+String result = optionalString.ofElse("");
+// 디폴트를 계산하는 코드를 호출
+String result = optionalString.orElseGet(() -> System.getProperty("user.dir"));
+// 값이 없는 경우 예외를 던질때
+String result = optionalString.ofElseThrow(NoSuchElementException::new);
+```
+
+#### 옵션 값 생성하기
+`Optional.of(result)` 또는 `Optional.empty()`를 이용해 Optional 객체를 생성한다.
+
+```
+public static Optional<Double> inverse(Double x) {
+  return x == 0 ? Optional.empty() : Optional.of(1 / x);
+}
+```
+
+`ofNullable` 메서드는 null 값 사용을 옵션 값으로 이어주는 용도로 만들어졌다. `Optional.ofNullable(obj)`는 obj가 null이 아니면 `Optional.of(obj)`를 null이면 `Optional.empty()`를 리턴한다.
+
+#### flatMap을 이용해 옵션 값 함수 합성하기
+`Optional<T>`를 리턴하는 메서드 f가 있고, 대상 타입 T는` Optional<U>`를 리턴하는 메서드 g를 포함하고 있다고 할 때, 일반 메서드라면 s.f().g()를 호출하는 방법으로 이 메서드들을 합성할 수 잇다. 하지만 이 경우에는 s.f()에서 T가 아닌 Options<T> 타입을 리턴하므로 이러한 합성이 동작하지 않는다. 대신 다음과 같이 호출한다. `Optional<U> result = s.f().flatMap(T::g);` 이렇게 하면 s.f()가 존재하면 g가 적용되고, 그렇지 않으면 비어 있는 Optional<U>가 리턴된다. 앞 예제의 inverse 메서드에 안전한 루트 메서드도 있다고 하자.
+
+```
+public static Optional<Doube> squareRoot(Double x) {
+  return x < 0 ? Optional.empty() : Optional.of(Math.sqrt(x));
+}
+
+// 다음과 같이 역수의 루트를 계산할 수 있따.
+Optional<Double> result = inverse(x).flatMap(Test::squareRoot);
+// 원한다면 다음과 같이 할 수도 있다.
+Optional<Double> result = Optional.of(-4.0).flatMap(Test::inverse).flatMap(Test::squareRoot); // inverse나 squareRot 메서드 중 하나가 Optional.empty()를 리턴하면 결과는 비어있게 된다.
+```
+
+### 리덕션 연사
+합계를 계산하거나 스트림의 요소들을 다른 방버으로 결합하고 싶은 경우, `reduce` 메서드들 중 하나를 사용할 수 있다. 가장 단순한 형태는 이항 함수를 받아서 처음 두 요소부터 시작하여 계속해서 해당함수를 적용한다. 
+
+```
+Stream<Integer> values = ...;
+Optional<Integer> sum = values.reduce((x, y) -> x + y); 
+// 또는 Optioanl<Integer> sum = values.reduce(Integer::sum);
+```
+
+연산은 결합 법칙을 지원해야 하고 병렬 스트림을 통한 효율적인 리덕션이 가능하다.  
+*`e op x = x'* 같은 항등값 *e*가 있을 때는 해당 요소를 계산의 시작으로 사용할 수 있다.
+
+```
+Stream<Integer> values = ...;
+Integer sum = values.redue(0, (x, y) -> x + y);
+```
+
+스트림이 비어 있으면 항등값을 리턴하므로 더는 Optional 클래스를 다룰 필요가 없다.
+
+문자열의 길이를 누적시키고자 할 때에 스트림 요소들은 String이고, 누적 결과는 정수다. 이때 전달하는 누적 함수는 `(total, word) -> total + word.length()` 다. 하지만 병렬화하면 이와 같은 계산이 여러개 존재하므로 각각의 결과를 결합해야 한다. 따라서 각 부분의 결과를 결합하는데 사용할 두번째 함수를 전달한다. 완성된 형태는 다음과 같다.
+
+```
+int result = words.reduce(0, 
+  (total, word) -> total + word.length(), 
+  (total1, total2) -> total1 + total2);
+```
+
+*실전에서는 reduce 메서드를 많이 사용하지 않을 것이다. 보통은 숫자 스트림에 맵핑한 후 스트림의 합계, 최대값, 최소값 계산 메서드를 사용하는 것이 더 쉽다. 앞의 예제에서는 `words.mapToInt(String::length).sum()`을 호출하는 방법으로 해결할 수 있고 이렇게 하면 박싱이 일어나지 않기 때문에 더 단순하면서도 더 효율적이다.*
+c### 결과 모으기
+스트림 작업을 마칠 때 보통은 값으로 리듀스하기보다는 결과를 살펴보길 원하기 마련이다. 이때 요소들을 방문하는데 사용할 수 있는 잔통적인 반복자를 돌려주는 iterator 메서드를 호출할 수 있고 다른 방법으로 toArray를 호출해서 스트림 요소들의 배열을 얻을 수 있다. 실행 시간에 제너릭 배열을 생성할 수 없기 때문에 `Stream.toArray()`는 Object[]를 리턴한다. 올바른 타입의 배열을 원하는 경우 배열 생성자를 전달한다. `String[] result = words.toArray(String::new);`  
+이제 HashSet에 결과를 모드려 한다고 하자. HashSet 객체는 스레드에 안전하지 않기 때문에 컬렉션을 병렬화하면 요소들을 단일 HashSet에 넣을 수 없다. 이와 같은 이유로 reduce를 사용할 수 없다. 각 부분은 자체적인 빈 해시 집합으로 작업을 시작해야 하는데 reduce는 항등값 하나만 전달하도록 허용한다. 따라서 reduce 대신 collect를 사용해야 한다. collect느 ㄴ세가지 인자를 받는다.
+1. 공급자(supplier) : 대상 객체의 새로운 인스턴스를 만든다.
+2. 누산자(accumulator) : 요소를 대상에 추가한다.
+3. 결합자(comnbiner) : 두 객체를 하나로 병합한다.
+*대상 객체가 컬렉션일 필요는 없다. StringBuilder나 카운트와 합게를 관리하는 객체라면 대상이 될 수 있다.*
+
+다음은 해시 집합을 대상으로 collect 메서드가 동작하는 방법을 보여준다.
+
+```
+HashSet<String> result = stream.collect(HashSet::new, HashSet::add, HashSet::addAll);
+```
+
+실전에서는 이들 세 함수를 제공하는 편리한 Collector 인터페이스와 공통 컬렉토용 팩토리 메서드를 제공하는 Collectors 클래스가 있으므로 이와 같이 일일이 지정할 필요가 없다. 스트림을 리스트나 집합으로 모으려면 단순히 다음과 같이 호출할 수 있다.
+
+```
+List<String> result = stream.collect(Collectors.toList());
+Set<String> result = stream.collect(Collectors.toSet());
+
+// 집합의 종류를 제어하고자 할 경우
+TreeSet<String> result = stream.collect(Collectors.toCollection(TreeSet::new));
+
+// 스트림에 있는 모든 문자열을 서로 연결해서 모으려고 할때
+String result = stream.collect(Collectors.joining());
+// 요소간에 구분자가 필요하다면
+Stream result = stream.collect(Collectors.joining(", "));
+// 스트림이 문자열 외의 객체를 포함하는 경우 먼저 해당 객체들을 문자열로 변환
+String result = stream.map(Object::toString).collect(Collectors.joining(", "));
+```
+
+스트림 결과를 합계, 평균, 최대값, 최소값으로 리듀스하려는 경우 summarizing(Int|Long|Double) 메서드 중 하나를 사용한다. 이들 메서드는 스트림 객체를 숫자로 맵핑하는 함수를 받고 합계, 평균, 최대값, 최소값을 얻는 메서드를 제공하는 (Int|Long|Double)SummaryStatistics 타입 결과를 돌려준다.
+
+```
+IntSummaryStatistics summary = words.collect(Collectors.summarizingInt(String::length));
+double averageWordLength = summary.getAverage();
+double maxWordLength = summary.getMax();
+```
+
+*단순히 값들을 출력하거나 데이터베이스에 저장하고 싶을때는 forEach 메서드 사용. `stream.forEach(System.out::println)` 병렬 스트림에서는 요소들을 임의 순서로 순화할 수 있다. 스트림 순서로 실행하고 싶으면 대신 forEachOrdered 메서드를 호출한다. 물론 이 경우 병렬성이 주는 대부분 또는 모든 이점을 포기해야 한다. forEach, forEachOrdered 메서드는 최종 연산이다. 이들 메서드를 호출한 후에는 스트림을 사용할 수 없다. 스트림을 계속 사용하고 싶으면 대신 peek를 사용해야한다.*
+
+### 맵으로 모으기
+Stream<Person>의 요소들을 맵으로 모아서 추후 ID로 사람을 조회할 수 있게 하려 한다고 할때 Collectors.toMap 메서드는 각각 맵의 키와 값을 생산하는 두 함수 인자를 받는다.
+
+```
+Map<Integer, String> idToName = people.collect(Collectors.toMap(Person::getId, Person::getName));
+// 값이 실제 요소여야 하는 경우
+Map<Integer, Person> idToPerson = people.collect(Collectors.toMap(Person:getId, Function.identity());
+```
+
+키가 같은 요소가 두개 이상이면 커렉터는 IllegalStateException을 던진다. 이 동작은 기존 값과 새 값을 받아서 키에 해당하는 값을 결정하는 세번째 함수 인자를 제공하는 방법으로 재정의할 수 있다. 여기서 세번째 인자로 제공하는 함수는 기존 값, 새 값 또는 두 값의 조합을 리턴할 수 있다.  
+여기서는 사용 가능한 로케일에 있는 각 언어를 포함하는 맵을 생성한다. 이 맵에서 키는 디폴트 로케일에서 언어 이름, 값은 지역화된 이름이다.
+
+```
+Stream<Locale> locales = Stream.of(Locale.getAvaliableLocales());
+Map<String, String> languageNames = locales.collect(
+  Collectors.toMap(
+    l -> l.getDisplayLanguage(),
+    l -> l.getDisplayLanguage(l),
+    (existingValue, newValue) -> existingValue));   // 무조건 첫번째만 유지
+```
+
+특정 국가에서 사용하는 모든 언어를 알고 싶을때 Map<String, Set<String>>이 필요한다. 예를 들면, "Switzerland"에 해당하는 집합은 [French, German, Italian]이다. 주어진 국가에서 새로운 언어를 발견할 때마다 기조 ㄴ집합과 새 집합의 합집합을 만든다.
+
+```
+Map<String, Set<String>> countryLanguageSets = locales.collect(
+  Collectors.toMap(
+    l -> l.getDisplayCountry(),
+    l -> Collectors.singleton(l.getDisplayLanguage()),
+    (a, b) -> {
+      Set<String> r = new HashSet<>(a);
+      r.addAll(b);
+      return r; }));
+// TreeMap을 원하는 경우 네번째 인자로 TreeMap 생성자를 전달. 이때 반드시 병합 함수를 제공해야 한다.
+Map<Integer, Person> idToPerson = people.collect(
+  Collectos.toMap(
+    Person::getId,
+    Function.identity(),
+    (existingValue, newValue) -> { throw new IllegalStateException(); },
+    TreeMap::new));
+```
+
+*toMap 메서드의 각 형태에 대응해 병행 맵을 리턴하는 toConcurrentMap 메서드가 있다. 병렬 컬렉션 처리에서는 병행 맵 하나를 사용한다. 병렬 스트림과 함께 사용하면 공유 맵 하나가 여러 맵을 병합하는 방법보다 효율적이다. 물론 이 경우 정렬은 포기해야 한다.*
+
+### 그룹핑과 파티셔닝
 
 
 

@@ -557,9 +557,132 @@ Map<Integer, Person> idToPerson = people.collect(
 *toMap 메서드의 각 형태에 대응해 병행 맵을 리턴하는 toConcurrentMap 메서드가 있다. 병렬 컬렉션 처리에서는 병행 맵 하나를 사용한다. 병렬 스트림과 함께 사용하면 공유 맵 하나가 여러 맵을 병합하는 방법보다 효율적이다. 물론 이 경우 정렬은 포기해야 한다.*
 
 ### 그룹핑과 파티셔닝
+성질이 같은 값들의 그룹을 만드는 일은 아주 흔한 작업으로 groupingBy 메서드는 그룹 작업을 직접 지원한다.  
+로케일을 국가별로 묶는 문제를 다시 살펴보자.
 
+```
+Map<String, List<Locale>> countryToLocales = locales.collect(Collectors.groupingBy(Locale::getCountry));
+List<Locale> swissLocales = countryToLocales.get("CH");   // it_CH, de_CH, fr_CH
+```
 
+*로케일에 관해 빠르게 복습해보자. 각 로케일은 언어 코드(영어인 경우 en)와 국가 코드(미국인 경우 US)를 포함한다. 로케일 en_US는 미국에서 사용하는 영어를 말하며, en_IE는 아일랜드에서 사용하는 영어를 말한다. 몇몇 국가에는 여러 로케일이 있다. 예를 들어, ga_IE는 아일랜드에서 사용하는 게일어다. 또한 앞의 예에서 볼 수 있듯이 저자의 JVM은 세가지 로케일을 파악하고 있따.* 
 
+분류 함수가 Predicate 함수(즉, boolean을 리턴하는 함수)인 경우, 스트림 요소가 리스트 두개(각각 함수에서 true와 false를 리턴하는 경우에 해당)로 분할된다. 이 경우에는 groupingBy 대신 partitioningBy를 사용하면 훨씬 효율적이다. 예를 들어, 다음 예저는 모든 로케일을 영어를 사용하는 경우와 그 외의 경여루 분리한다.
+
+```
+Map<Boolean, List<Locale>> englishAndOtherLocales = locales.collect(Collections.patitioningBy(l -> l.getLanguage().equals("en")));
+List<Locale>> englishLocales = englishAndOtherLocales.get(true);
+```
+
+*groupingByConcurrent 메서드를 호출하면 병행 맵을 얻으며, 이를 병렬 스트림에서 사용하면 동시에 내용이 채워진다. 전체적으로 볼 때 이 메서드는 toConcurrentMap 메서드에 해당한다.*
+
+groupingBy 메서드는 값이 리스트인 맵을 돌려진다. 이들 리스트를 특정 방식으로 처리하려면 *다운 스트림 컬렉터*를 제공한다. 예를 들어, 리스트 대신 집합을 원하는 경우 앞 절에서 본 Collectors.toSet 컬렉터를 사용할 수 있다.
+
+```
+Map<String, Set<Locale>> countryToLocaleSet = locales.collect(groupingBy(Locales.getCountry, Collectors.toSet()));
+```
+
+그룹으로 묶인 요소들의 다운스트림 처리용으로 몇 가지 다른 커렉터가 제공된다.
+* countring은 모인 요소들의 개수를 센다.예를 들어 다음 코드는 각 국가의 로케일 개수를 센다. `Map<String, Long> countryToLocaleCounts = locales.collect(groupingBy(Locale::getCountry, Collectors.counting()));`
+* summing(Int|Long|Double)은 함수 인자 하나를 받아서 해당 함수를 다운스트림 요소들에 적용하고 합계를 구한다. 예를 들어 다음 코드는 도시로 구성된 스트림에서 주별 인구의 합계를 계산한다. `Map<String, Integer> stateToCityPopulation = cities.collect(groupingBy(City::getState, summingInt(City::getPopulation)));`
+* maxBy와 minBy는 비교자 하나를 받아서 다운스트림 요소들의 최대값과 최솟값을 구한다. 예를 들어, 다음 코드는 주별로 가장 큰 도시를 구한다. `Map<Sting, City> stateToLargestCity = cities.collect(groupingBy(City::getState, maxBy(Comparator.comparing(City::getPopulation))));`
+* mapping은 함수를 다운스트림 결과에 적용하며, 이 결과를 처리하는데 필요한 또 다른 컬럭터를 요구한다. 다음 예제를 보자.
+
+```
+// 도시를 주별로 묶고 각 주에서 도시들의 이름을 얻고 최대 길이로 리듀스한다.
+Map<String, Optional<String>> stateToLongestCityName = cities.collect(
+  groupingBy(City::getState, 
+    mapping(City::getName, 
+      maxBy(Comparator.comparing(String::length)))));
+// mapping 메서드는 앞 절의 문제에 좀 더 훌륭한 해결책을 제시. 각 국가에서 사용하는 모든 언어의 집합을 모으려면
+Map<String, Set<String>> countryToLanguage = locales.collect(
+  groupingBy(l -> l.getDisplayCountry(),
+    mapping(l -> l.getDisplayLanguage(),
+      toSet())));
+```
+* 그룹핑이나 맵핑 함수가 int, long 또는 double 타입을 리턴한다면 요소들을 통계 객체 안으로 모을 수 있다.
+
+```
+Map<String, IntSummaryStatistics> stateToCityPopulationSummary
+  = cities.collect(
+    groupingBy(City::getState, 
+      summarizingInt(City::getPopulation)));
+```
+* 마지막으로 reducing 메서드는 다운스트림 요소들에 범용 리덕션을 적용한다. 세가지 메서드 형태 reducing(binaryOperator), reducing(identity, binaryOperator), reducing(identity, mapper, binaryOperator)가 있다. 첫번째 형태에서는 항등값이 null 이다.(항등 파라미터가 없으면 Optional 결과를 돌려주는 Stream::reduce의 형태와는 다르다는 점을 주목하기 바란다). 세번째 형태에서는 mapper 함수가 적용되고 이 함수의 값이 리류스 된다.
+
+```
+// 각 주에 있는 모든 도시의 이름을 컴마로 연결
+Map<String, String> stateToCityName = cities.collect(
+  groupingBy(City::getState, 
+    reducing("", City::getName,
+      (s, t) -> s.length() == 0 ? t : s + ", " + t)));
+// Stream.reduce와 마찬가지로 Collectors.reducing은 거의 사용할 필요가 없다. 다음 코드로 같은 결과를 더 자연스럽게 얻을 수 있다.
+Map<String, String> stateToCityNames = cities.collect(
+  groupingBy(City::getState,
+    mapping(City:getName,
+      joining(", "))));
+```
+
+### 기본 타입 스트림
+Stream<Integer>와 같은 래퍼 객체를 사용하는 것은 비효율적이기 때문에 IntStrean, LongStream, DoubleStream 같은 기본 타입 값들을 직접 자장하는데 특화된 타입을 사용한다. short, char, byte, boolean 타입은 IntStream, float는 DoubleStream을 사용한다.
+
+```
+IntStream stream = IntStream.of(1, 1, 2, 3, 5);
+stream = Arrays.stream(values, from, to);
+```
+
+객체 스트림과 마찬가지로 정적 generate와 iterate 메서드를 사용할 수 있다. 또한 IntStream과 LongStream은 크기 증가 단위가 1인 정수 범위를 생성하는 정적 range와 rangeClosed 메서드를 포함한다.
+
+```
+IntStream zeroToNinetyNine = IntStream.range(0, 100); // 상한값 제외
+IntStream zoroToHundred = IntStream.rangeClosed(1, 100);  // 상한값 포함
+```
+
+CharSequence 인터페이스는 각각 문자의 유니코드와 UTF-16 인코딩의 코드 단위로 구성된 IntStream을 돌려주는 codePoint와 chars 메서드를 포함한다.
+
+```
+Streing sentent = "\uD835\uDD46 is the set of octionions.";
+IntStream codes = sentence.codePoints();
+```
+
+객체 스트림은 mapToInt, mapToLong, mapToDouble 메서드를 이용해 기본 타입 스트림으로 변환할 수 있다. 예를 들어 문자열 스트림에서 요소의 길이를 정수로 처리하려는 경우 IntStream으로도 수행할 수 있다.
+
+```
+Stream<String> words = ...;
+IntStream lengths = words.mapToInt(String::lenght);
+// 기본 타입 스트림을 객체 스트림으로 변환
+Stream<Integer> integers = Integer.range(0, 100).boxed();
+```
+
+일반적으로 기본 타입 스트림을 대상으로 동작하는 메서드는 객체 스트림 대상 메서드와 유사하다. 다음은 가장 주목할 만한 차이점이다.
+* toArray 메서드는 기본 타입 배열을 리턴한다.
+* 옵션 결과를 돌려주는 메서드는 OptionalInt, OptionalLong, OptionalDouble을 리턴한다. 이들 클래스는 Optional 클래스와 유사하지만, get 메서드 대신 getAsInt, getAsLong, getAsDouble 메서드를 포함한다.
+* 각각 합계, 평균, 최대값, 최소값을 리턴하는 sum, average, max, min 메서드가 있다. 객체 스트림에는 이러한 메서드가 정의되어 있지 않다.
+* summaryStatistics 메서드는 스트림의 합계, 평균, 최대값, 최소값을 동시에 보고할 수 있는 IntSummaryStatistics, LongSummaryStatistics, DoubleSummaryStatistics 타입 객체를 돌려준다.
+
+### 병렬 스트림
+parallel 메서드는 순차 스트림을 병렬 스트림으로 변환한다. `Stream<String> parallelWords = Stream.of(wordArray).parallel();`  
+스트림이 병렬 모드에 있으면 최종 메서드가 실행될 때 모든 지연 처리 중간 스트림 연산이 병렬화된다.
+
+병렬 스트림 연산에 전달하는 함수가 스레드에 안전함을 보장하는 일은 여러분의 책임이다.
+
+기본적으로 순서 유지 컬렉션(배열과 리스트), 범위(Range), 발생기(Genrator), 반복자 또는 Stream.sorted를 호출해서 얻는 스트림은 순서를 유지한다. 순서 유지 스트림의 결과들은 원본 요소들의 순서로 쌓이고, 전체적으로 예측 가능하게 동작하낟. 따라서 같은 연산들을 두번 실행해도 왼전히 같은 결과를 얻는다. 순서 때문에 병렬화를 이용할 수 없는 것은 아니다. 예를 들어 Stream.map(fun)을 계산할 때 스트림은 n개 세그먼트로 분할되어 각각이 동시에 처리될 수 있다. 그런 다음 순서대로 재조립된다.
+
+몇몇 연산은 순서에 대한 요구 사항을 버리면 더 효과적으로 병렬화될 수 있다. Stream.unordered 메서드를 호출함으로써 순서에는 관심이 없음을 나타낼 수 있다. 이로부터 이점을 얻을 수 잇는 한가지 연산은 Stream.distinct다. 순서 유지 스트림에서 distinct는 같은 요소 중 첫번째를 보존한다. 하지만 이 동작은 병렬화를 방해한다(세그먼트를 처리 중인 스레드는 이전 세그먼트가 처리되기 전에는 어느 요소들을 버려야 하는지 알 수 없다). 유일한 요소라면 어느 것이든 보존해도 괜찮다면 (중복을 추적하기 위해 공유 집합을 사용해) 모든 세그먼트를 동시에 처리할 수 있다.
+
+순서를 포기하면 limit 메서드를 빠르게 할 수 있다. 스트림에서 단지 n개 요소를 원할뿐 어느 것을 얻는지는 상관하지 않는다면 `Stream<T> sample = stream.parallel().unordered().limit(n);`
+
+맵으로 모으기에 있는 맵을 병합하는 일은 비용이 많이 든다. 이 때문에 Collectos.groupingByConcurrent 메서드는 공유되는 병행 맵을 사용한다. 분명히 병렬화의 이점을 얻기 위해 맵 값들의 순서는 스트림 순서와 달라질 것이다. 이 컬렉터는 심지어 순서 유지 스트림에서도 순서을 유지하지 않는 성질이 있다. 따라서 스트림이 순서를 유지하지 않게 만들 필요 없이도 효율적으로 상요할 수 있다. 그럼에도 여전히 스트림을 병렬로 만들어야 한다.
+
+```
+Map<String, List<String>> result = cities.parallel().collect(
+  Collectos.groupingByConcurrent(City::getState));
+```
+
+> 스트림 연산을 수행하는 동안에는 해당 스트림을 뒷받침하는 컬렉션을 절대 수정하면 안된다(스레드에 안전한 수정인 경우에도). 스트림은 자체적으로 데이터를 모이지 않음을 명심하기 바란다(데이터는 항상 별도의 컬렉션에 존재한다). 만딜 해당 컬렉션을 수정하면 스트림 연산들의 결과는 정의되지 않는다. JDK 문서에서는 이 요구 사항을 방해 금지(Noninterference)라고 언급하고 있다. 이 사항은 순차 스트림과 병렬 스트림 모두에 적용된다.
+> 엄밀히 말하면 중간 스트림 연산은 지연 처리되기 때문에 최종 연산이 실행하는 시점 이전까지는 컬렉션을 변경할 수 있다.
+
+### 함수형 인터페이스
 
 ## 3장 람다를 이용한 프로그래밍
 

@@ -691,32 +691,139 @@ Stream<String> longWords = words.filter(s -> s.length() >= 12);
 
 Stream 클래스의 javadoc에는 filter 메서드가 다음과 같이 선언되어 있다.
 > Stream<T> filter(Predicate<? super T> predicate)
+Predicate는 boolean 값을 리턴하는 넌디폴트 메서드 한 개를 포함하는 인터페이스다.
 
+```
+public interface Predicate {
+  boolean test(T argument);
+}
+```
 
+실전에서는 보통 람다 표현식이나 메서드 레퍼런스를 전달하기 때문에 메서드의 이름은 실제로 문제가 되지 않는다.  
 
+*Stream.filter의 선언부를 자세히 살펴보면 와일드카드 타입 Predicate<? super T>를 주목하게 될 것이다. 흔히 함수 파라미터로 이와 같은 타입을 사용한다. 예를 들어 Employee는 Person의 서브클래스이고, Stream<Employee>가 있다고 하자. 이 경우 Predicate<Employee>, Predicate<Person> 또는 Preicate<Object>로 스트림을 필터링할 수 있다(여기서 T는 Employee). 이와 같은 유연성은 메서드 레퍼런스를 전달할 때 특히 중요한다. 예를들어, Stream<Employee>를 필터링 하는 데 Person::isAlive를 사용하려 한다고 하자. 이 작업은 순전히 filter 메서드의 파라미터에 있는 와일드카드 덕분에 동작한다.*
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+다음표는 Stream과 Collectors에 속한 메서드들의 파라미터로 나타나는 함수형 인터페이스를 요약해서 보여준다.  
+스트림 API에서 사용하는 함수형 인터페이스
+함수형 인터페이스 | 파라마터 타입 | 리턴 타입 | 설명
+------------|------------|------------|------------
+Supplier<T> | 없음 | T | T 타입 값을 공급한다.
+Consumer<T> | T | void | T 타입 값을 소비한다.
+BiConsumer<T, U> | T, U | void | T와 U 타입 값을 소비한다.
+Predicate<T> | T | boolean | boolean 값을 리턴한다.
+ToIntFunction<T>, ToLongFunction<T>, ToDoubleFunction<T> | T | int, long, double | T 타입을 인자로 받고 각각 int, long, double 값을 리턴하는 함수
+IntFunction<R>, LongFunction<R>, DoubleFunction<R> | int, long, double | R | 각각 int, long, double을 인자로 받고 R 타입을 리턴한다.
+Function<T, R> | T | R | T 타입을 인자로 받고 R 타입을 리턴
+BiFuction<T, U, R> | T, U | R | T와 U 타입을 낮로 받고 R을 리턴
+UnaryOperator<T> | T | T | T 타입에 적용되는 단항 연산자
+BinaryOperator<T> | T, T | T | T 타입에 적용되는 이항 연산자
 
 ## 3장 람다를 이용한 프로그래밍
+* 핵심 내용
+  * 란다 표현식을 사용하는 주 이유는 적절한 시점까지 코드의 실행을 지연하기 위한 것
+  * 람다 표현식을 실행할 때 필요한 모든 데이터를 입력으로 제공
+  * 가능하면 기존 함수형 인터페이스 중 하나를 선택
+  * 종종 함수형 인터페이스의 인스턴스를 리턴하는 메서드를 작성하는 것이 유용
+  * 변환들을 다룰 때는 각 변환을 어떻게 합성할지 고려
+  * 변환들을 지연해서 합성하려면, 모든 지연 변환의 목록을 관리하고 마지막에는 변환들을 적용해야 한다.
+  * 람다를 여러 번 적용해야 하는 경우, 종종 해당 작업을 동시에 실행하는 하위 작업들로 분리할 기회가 있다.
+  * 예외를 던지는 람다 표현식을 다룰 때는 무슨 일이 일어나야 하는지 생각해야 한다.
+  * 제니릭 함수형 인터페이스를 다룰 때 인자 타입에는 ? super 와일드카드를 사용하고, 리턴 타입에는 ? extends 와일드카드를 사용한다.
+  * 함수를 통해 변환할 수 있는 제네릭 타입을 다룰 때는 map과 flapMap 메서드를 제공하는 방안을 고려해 본다.
+  
+### 지연 실행
+코드를 나중에 실행하려는 이유
+* 별도의 스레드에서 코드 실행
+* 코드를 여러번 실행
+* 알고리즘에서 코드를 적절한 시점에 실행(에를 들면, 정렬에서 비교 연산)
+* 어떤 일이 발생했을 때 코드 실행(버튼 클릭, 데이터 도착)
+* 필요할 때만 코드 실행
+이벤트를 로그로 남길 때 
 
+```
+logger.info("x: " + x + ", y: " + y);
+// 필요할 때만 문자열 연산 발생
+() -> "x: " + x + ", y: " + y
+// 1. 람다를 받는다.
+// 2. 람다를 호출해야 하는지 검사
+// 3. 필요할 때 람다를 호출
+public static void info(Logger logger, Supplier<String> message) {
+  if (logger.isLoggable(Level.INFO)) {
+    logger.info(message.get());
+  }
+}
+```
 
+### 람다 표현식의 파라미터
+사용자에게 비교자를 제공하도록 요구할 경우에는 해당 비교자에서 인자 두개를 받는다는 사실이 분명하다.
 
+```
+Arrays.sort(name, (s, t) -> Integer.compare(s.lenth(), t.length()));
 
+// 다른 예제
+public static void repeat(int n, IntConsumer action) {
+  for (int i = 0; i < n; i++) {
+    action.accept(i);
+  }
+}
 
+repeat(10, i -> System.out.println("Countdown: " + (9 - i)));
+button.setOnAction(event -> 액션);
+```
+왜 Runnable이 아니고 IntConsumer일까? 여기서는 몇번째 반복에서 실행하고 있는지를 액션에 알려주는데, 이는 유용한 정보가 될 수 있다. 액션은 파라미터로 들어온 입력을 캡처해야 한다.  
+인자가 필요없다면 사용자에게 불필요한 인자들을 받도록 강제하지 않는 방안을 고려한다.
+
+```
+public static void repeat(int n, Runnable action) {
+  for (int i = 0; i < n; i++) {
+    action.run();
+  }
+}
+
+repeat(10, () -> System.out.println("Hello, World!"));
+```
+### 함수형 인터페이스 선택
+대부분의 함수형 프로그래밍 언어에서 함수 타입은 구조적이다. 문자열 두개를 정수로 맵핑하는 함수를 명시하려면 Function2<String, String, Integer> 또는 (String, String) -> int 형태의 타입을 사용한다. 자바에서는 이 대신 Comparator<String> 같은 함수형 인터페이스를 사용해 함수의 의도를 선언한다. 프로그래밍 언어 이론에서는 이를 명목적 타이핑이라고 한다.  
+공통 함수형 인터페이스
+함수형 인터페이스 | 파라미터 타입 | 리턴 타입 | 추상 메서드 이름 | 설명 | 다른 메서드
+------------|------------|------------|------------|------------|------------
+Runnable | 없음 | void | run | 인자와 리턴 값 없이 액션을 실행한다 | 
+Supplier<T> | 없음 | T | get | T 타입 값을 공급한다 | 
+Consumer<T> | T | void | accept | T 타입 값을 소비한다 | chain
+BiConsumer<T, U> | T, U | void | accept | T와 U 타입값을 소비 | chain
+Function<T, R> | T | R | apply | T 타입 인자를 받고 R 타입을 리턴 | compose, andThen, identity
+BiFunction<T, U, R> | T, U | R | apply | T와 U 타입 인자를 받고 R 타입을 리턴 | andThen
+UnaryOperator<T> | T | T | apply | T 타입을 대상으로 동작하는 단항 연산자 | compose, andThen, identity
+BinaryOperator<T> | T, T | T | apply | T 타입을 대상으로 동작하는 이항 연산자 | andThen
+Predicate<T> | T | boolean | test | boolean 값을 리턴 | and, or, negate, isEqual
+BiPredicate<T, U> | T, U | boolean | test | 인자 두개를 받고 boolean 값을 리턴 | ant, or, negate
+
+예를 들어, 특정 기준을 만족하는 파일을 처리하는 메서드를 작상한다고 하자. 이때 서술적인 java.io.FileFilte 클래스를 사용해야 하는가, 아니면 Prediate<File>을 사용해야 하는가? 둘 중에 Predicate<File>의 사용을 강력히 추천한다. 아마도 FileFilter 인스턴스를 생선하는 수많은 유용한 메서드를 이미 갖추고 있을 경우에나 Predicate<File>을 사용하지 않을 것이다.
+
+*대부분의 표준 함수형 인터페이스는 함수를 생산하거나 결합하는 비추상 메서드를 포함한다. 예를 들어 `Prediate.isEqual(a)`는 a가 null이 아닌 경우 `a::equals`와 같다. 또한 Predicate들을 결합하는데 사용하는 디폴트 메서드인 and, or, negate가 있다. 예를들어, `Predicate.isEqual(a).or.Predicate.isEqual(b))`는 `x -> a.equals(x) || b.equals(x)`와 같다.*
+
+각 픽셀에 Color -> Color 함수를 적용해서 이미지를 변환하려 한다고 하자. `Image brightenedImage = transform(image, Color::brighter);`  
+이 용도로 사용할 수 있는 UnaryOperator<Color> 라는 표준 인터페이스가 있다.
+
+```
+// 이 메서드는 java.awt가 아닌 JavaFX의 color와 Image 클래스를 사용한다.
+public static Image transform(Image in, UnaryOperator<Color> f) {
+  int width = (int) in.getWidth();
+  int height = (int) in.getHeight();
+  WritableImage out = new WritableImage(width, height);
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      out.getPixelWriter().setColor(x, y, f.apply(in.getPixelReader().getColor(x, y)));
+    }
+  }
+  return out;
+}
+```
+다음 표는 기본 타입인 int, long, double 용으로 이용할 수 있는 34가지 특화 버전 목록을 보여준다. 오토박싱을 줄일 수 있도록 가능하면 특화 버전을 사용한다.  
+기본 타입용 함수형 인터페이스 : p, q는 int, long, double을 P, Q는 Int, Long, Double을 나타냄
+함수형 인터페이스 | 파라미터 타입 | 리턴 타입 | 추상 메서드 이름
+------------|------------|------------|------------
+BooleanSupplier | 없음 | boolean | getAsBoolean
 
 
 ## 4장 JavaFX

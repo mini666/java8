@@ -683,6 +683,33 @@ Map<String, List<String>> result = cities.parallel().collect(
 > 엄밀히 말하면 중간 스트림 연산은 지연 처리되기 때문에 최종 연산이 실행하는 시점 이전까지는 컬렉션을 변경할 수 있다.
 
 ### 함수형 인터페이스
+Stream.filter 메서드는 함수 인자를 받는다.
+
+```
+Stream<String> longWords = words.filter(s -> s.length() >= 12);
+```
+
+Stream 클래스의 javadoc에는 filter 메서드가 다음과 같이 선언되어 있다.
+> Stream<T> filter(Predicate<? super T> predicate)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 3장 람다를 이용한 프로그래밍
 

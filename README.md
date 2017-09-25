@@ -786,6 +786,7 @@ repeat(10, () -> System.out.println("Hello, World!"));
 ### 함수형 인터페이스 선택
 대부분의 함수형 프로그래밍 언어에서 함수 타입은 구조적이다. 문자열 두개를 정수로 맵핑하는 함수를 명시하려면 Function2<String, String, Integer> 또는 (String, String) -> int 형태의 타입을 사용한다. 자바에서는 이 대신 Comparator<String> 같은 함수형 인터페이스를 사용해 함수의 의도를 선언한다. 프로그래밍 언어 이론에서는 이를 명목적 타이핑이라고 한다.  
 공통 함수형 인터페이스  
+
 함수형 인터페이스 | 파라미터 타입 | 리턴 타입 | 추상 메서드 이름 | 설명 | 다른 메서드
 ------------|------------|------------|------------|------------|------------
 Runnable | 없음 | void | run | 인자와 리턴 값 없이 액션을 실행한다 | 
@@ -822,6 +823,7 @@ public static Image transform(Image in, UnaryOperator<Color> f) {
 ```
 다음 표는 기본 타입인 int, long, double 용으로 이용할 수 있는 34가지 특화 버전 목록을 보여준다. 오토박싱을 줄일 수 있도록 가능하면 특화 버전을 사용한다.  
 기본 타입용 함수형 인터페이스 : p, q는 int, long, double을 P, Q는 Int, Long, Double을 나타냄  
+
 함수형 인터페이스 | 파라미터 타입 | 리턴 타입 | 추상 메서드 이름
 ------------|------------|------------|------------
 BooleanSupplier | 없음 | boolean | getAsBoolean

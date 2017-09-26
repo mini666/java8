@@ -822,11 +822,89 @@ public static Image transform(Image in, UnaryOperator<Color> f) {
 }
 ```
 다음 표는 기본 타입인 int, long, double 용으로 이용할 수 있는 34가지 특화 버전 목록을 보여준다. 오토박싱을 줄일 수 있도록 가능하면 특화 버전을 사용한다.  
-기본 타입용 함수형 인터페이스 : p, q는 int, long, double을 P, Q는 Int, Long, Double을 나타냄  
+기본 타입용 함수형 인터페이스 : *p, q*는 int, long, double을 *P, Q*는 Int, Long, Double을 나타냄  
 
 함수형 인터페이스 | 파라미터 타입 | 리턴 타입 | 추상 메서드 이름
 ------------|------------|------------|------------
 BooleanSupplier | 없음 | boolean | getAsBoolean
+*P*Supplier | 없음 | *p* | getAs*P*
+*P*Consumer | *p* | void | accept
+Obj*P*Consumer<T> | T, *p* | void | accept
+*P*Function<T> | *p* | T | apply
+*P*To*Q*Function | *p* | *q* | applyAs*Q*
+To*P*Function<T> | T | *p* | applyAs*P*
+To*P*BiFunction<T, U> | T, U | *p* | applyAs*P*
+*P*UnaryOperator | *p* | *p* | applyAs*P*
+*P*BinaryOperator< | *p, p* | *p* | applyAs*P*
+*P*Predicate | *p* | boolean | test
+
+때로는 표준 라이브러리에 원하는 인터페이스가 없어서 자시남ㄴ의 함수형 인터ㅔㅍ이스를 제공해야 할 수도 있다. 사용자가 이미지의 (x, y) 위치에 따라 새로운 색상을 계산하는 함수인 `(int, int, Color) -> Color`를 제공하게 하는 방법으로 이미지의 색상을 수정하고 샆디고 하자. 이 경우 다음과 같이 자신만의 인터페이스를 정의할 수 있다.
+
+```
+@FunctionalInterface
+public interface ColorTransformer {
+  Color apply(int x, int y, Color colorAtXY);
+}
+```
+
+### 함수 리턴
+함수형 프로그래밍 언어에서는 함수가 일차 구성원이다. 인자와 리턴 값이 함수일 수 있다. 자바는 함수형 인터페이스를 사용하기 때문에 함수형 언어와는 거리가 있지만 원칙은 같다. 리턴 타입이 함수형 인터페이스인 메서드를 알아보자.  
+다시 이미지 변환을 고려. 다음 코드를 호출하면 이미지가 고정량만큼 밝아진다.
+
+```
+Image brighternedImage = transform(image, Color::brighter);
+
+// 이미지를 더 밝게 하거나 너무 밝지 않게 하고 싶은 경우 밝기를 추가 파라미터로 제공
+Image brightenedImage = transform(image, (c, factor) -> c.deriveColor(0, 1, factor, 1), 1.2);
+// 이 경우 transform을 오버로드
+public static <T> Image transform(Image in, BiFunction<Color, T> f, T arg)
+
+// 인자 두개를 전달하고 싶은 경우, 밝기를 설정하고 적절한 UnaryOperator<Color>를 리턴하는 메서드를 생성
+public static UnaryOperator<Color> brighten(double factor) {
+  return c -> c.deriveColor(0, 1, factor, 1);
+}
+Image brightenedImage = transform(image, brighten(1.2));
+```
+
+### 합성
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 4장 JavaFX

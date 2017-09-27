@@ -867,6 +867,27 @@ Image brightenedImage = transform(image, brighten(1.2));
 ```
 
 ### 합성
+변환이 두가지 있다면
+
+```
+Image image = new Image("eiffel-tower.jpg");
+Image image2 = transform(image, Color::brighter);
+Image finalImage = transform(image2, Color::grayscale);
+```
+
+중간 이미지를 만들어야 하므로 효율적이지 않다. 연산들을 합성햐서 적용하면 좋을 것.  
+위 경우 연산이 UnaryOperation<Color>의 인스턴스이다. UnaryOperator 타입은 compose 메서드를 포함하고 있는데 여기서는 유용하지 않다. 여기서는 자체저으로 만든다.
+
+```
+public static <T> UnaryOperator<T> compose(UnaryOperator<T> op1, UnaryOperator<T> op2) {
+  return t -> op2.apply(op1.apply(t));
+}
+
+Image finalImage = transform(image, compose(Color::brighter, Color::grayscale));
+```
+
+### 지연
+
 
 
 

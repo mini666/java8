@@ -543,7 +543,7 @@ Map<String, String> languageNames = locales.collect(
     (existingValue, newValue) -> existingValue));   // 무조건 첫번째만 유지
 ```
 
-특정 국가에서 사용하는 모든 언어를 알고 싶을때 Map<String, Set<String>>이 필요한다. 예를 들면, "Switzerland"에 해당하는 집합은 [French, German, Italian]이다. 주어진 국가에서 새로운 언어를 발견할 때마다 기조 ㄴ집합과 새 집합의 합집합을 만든다.
+특정 국가에서 사용하는 모든 언어를 알고 싶을때 Map<String, Set<String>>이 필요한다. 예를 들면, "Switzerland"에 해당하는 집합은 [French, German, Italian]이다. 주어진 국가에서 새로운 언어를 발견할 때마다 기존 집합과 새 집합의 합집합을 만든다.
 
 ```
 Map<String, Set<String>> countryLanguageSets = locales.collect(
@@ -574,7 +574,7 @@ Map<String, List<Locale>> countryToLocales = locales.collect(Collectors.grouping
 List<Locale> swissLocales = countryToLocales.get("CH");   // it_CH, de_CH, fr_CH
 ```
 
-*로케일에 관해 빠르게 복습해보자. 각 로케일은 언어 코드(영어인 경우 en)와 국가 코드(미국인 경우 US)를 포함한다. 로케일 en_US는 미국에서 사용하는 영어를 말하며, en_IE는 아일랜드에서 사용하는 영어를 말한다. 몇몇 국가에는 여러 로케일이 있다. 예를 들어, ga_IE는 아일랜드에서 사용하는 게일어다. 또한 앞의 예에서 볼 수 있듯이 저자의 JVM은 세가지 로케일을 파악하고 있따.* 
+*로케일에 관해 빠르게 복습해보자. 각 로케일은 언어 코드(영어인 경우 en)와 국가 코드(미국인 경우 US)를 포함한다. 로케일 en_US는 미국에서 사용하는 영어를 말하며, en_IE는 아일랜드에서 사용하는 영어를 말한다. 몇몇 국가에는 여러 로케일이 있다. 예를 들어, ga_IE는 아일랜드에서 사용하는 게일어다. 또한 앞의 예에서 볼 수 있듯이 저자의 JVM은 세가지 로케일을 파악하고 있다.* 
 
 분류 함수가 Predicate 함수(즉, boolean을 리턴하는 함수)인 경우, 스트림 요소가 리스트 두개(각각 함수에서 true와 false를 리턴하는 경우에 해당)로 분할된다. 이 경우에는 groupingBy 대신 partitioningBy를 사용하면 훨씬 효율적이다. 예를 들어, 다음 예저는 모든 로케일을 영어를 사용하는 경우와 그 외의 경여루 분리한다.
 

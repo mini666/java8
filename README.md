@@ -1,6 +1,14 @@
 # Java8
 
 ## 1장 람다표현식
+1. 람다 표헌식 문법
+2. 함수형 인터페이스
+3. 메서드 레퍼런스
+4. 생성자 레퍼런스
+5. 변수 유효 범위
+6. 디폴트 메서드
+7. 인터페이스의 정적 메서드
+
 * 핵심 내용
   * 람다 표현식은 파라미터가 있는 코드 블럭이다.
   * 코드 블록을 나중에 실행하고자 할 때 람다 표현식을 사용한다.
@@ -477,7 +485,8 @@ c### 결과 모으기
 이제 HashSet에 결과를 모드려 한다고 하자. HashSet 객체는 스레드에 안전하지 않기 때문에 컬렉션을 병렬화하면 요소들을 단일 HashSet에 넣을 수 없다. 이와 같은 이유로 reduce를 사용할 수 없다. 각 부분은 자체적인 빈 해시 집합으로 작업을 시작해야 하는데 reduce는 항등값 하나만 전달하도록 허용한다. 따라서 reduce 대신 collect를 사용해야 한다. collect는 세가지 인자를 받는다.
 1. 공급자(supplier) : 대상 객체의 새로운 인스턴스를 만든다.
 2. 누산자(accumulator) : 요소를 대상에 추가한다.
-3. 결합자(comnbiner) : 두 객체를 하나로 병합한다.  
+3. 결합자(comnbiner) : 두 객체를 하나로 병합한다.
+
 *대상 객체가 컬렉션일 필요는 없다. StringBuilder나 카운트와 합게를 관리하는 객체라면 대상이 될 수 있다.*
 
 다음은 해시 집합을 대상으로 collect 메서드가 동작하는 방법을 보여준다.
@@ -1706,6 +1715,142 @@ static anyOf | CompletableFuture<?>... | 주어진 CompletableFuture 중 하나�
 *기술적으로 말하면, 이 절에서 설명하는 메서드들은 CompletableFuture가 아니라 CompletionStage 타입 파라미터를 받는다. CompletionStage는 40개 가까운 추상 메서드를 포함하는 인터페이스 타입으로, 아직은 CompletableFuture에서만 구현하고 있다.*
 
 ## 7장 Nashorn 자바 스크립트 엔진
+1. 명령행에서 Nashorn 실행
+2. 자바에서 Nashorn 실행
+3. 메서드 호출
+4. 객체 생성
+5. 문자열
+6. 숫자
+7. 배열 작업
+8. 리스트와 맵
+9. 람다
+10. 자바 클래스 확장과 자바 인터페이스 구현
+11. 예외
+12. 쉘 스크립팅
+13. Nashorn과 JavaFX
+
+* 핵심 내용
+  * Nashorn은 Rhino 자바스크립트 인터프리터의 후속 인터프리터로 훨씬 성능이 뛰어나고 자바스크립트 표준에도 충실하다.
+  * Nashorn은 자바 API를 실험하기 좋은 환경이다.
+  * jjs 인터프리터 또는 자바에서 스크립팅 API를 이용해 자바스크립트를 실행할 수 있다.
+  * 가장 일반적인 패키지에 접근할 때는 미리 정의된 자바스크립트 객체를 사용하고, 어떤 패키지든 접근하려 할때는 Java.type 함수를 사용한다.
+  * 자바스크립트와 자바 사이에서 문자열과 숫자 변환을 할 때 일어나는 복잡한 문제를 주의한다.
+  * 자바스크립트는 자바빈즈 프로퍼트는 물론 자바 리스트와 맵을 다루는 편리한 문법을 제공한다.
+  * 람다 표헌식 사용과 아주 유사한 방식으로 자바스크립트 함수를 자바 인터페이스로 변환할 수 있다.
+  * 자바스크립트에서 자바 클래스를 확장하고 자바 인터페이스를 구현할 수 있지만 몇가지 제한이 있다.
+  * Nashorn은 자바스크립트를 이용한 쉘 스크립트 작성을 잘 지원한다.
+  * 자바스크립트로 JavaFX 프로그램을 작성할 수 있지만 기대만큼 통합이 잘 지원되지는 않는다.
+
+### 명령행에서 Nashorn 실행
+자바8은 jjs라는 명령행 도구를 함께 제공한다.
+
+> $ jjjs
+> jjs> 'Hello, World'
+> Hello, World
+
+리스프(Lisp), 스칼라(Scala) 등에서 '읽기-평가-출력' 루프 줄여서 REPL 이라고 부르는 것을 얻게 된다.
+
+*자바스크립트에서는 문자열을 '...' 또는 "..." 형식으로 표현할 수 있다는 점을 상기하기 바란다. 이 장에서는 자바가 아니라 자바스크립트 코드임을 눈으로 확인할 수 있게 자바스크립트 문자열에는 작은 따옴표를 사용한다.*
+
+다음과 같이 함수를 정의하고 호출할 수 있다.
+
+```
+jjs> function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1) }
+function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1) }
+jjs> factorial(10)
+3628800
+```
+
+다음과 같이 자바 메서드를 호출할 수 있다.
+
+```
+jjs> var input = new java.util.Scanner(new java.net.URL('http://horstman.com').openStream())
+jjs> input.useDelimiter('$')
+java.util.Scanner[delimiters=$][position=0][match valid=false][need input=false][source closed=false][skipped=false][group separator=\,][decimal separator=\.][positive prefix=][negative prefix=\Q-\E][positive suffix=][negative suffix=][NaN string=\Q?\E][infinity string=\Q▒▒\E]
+jjs> var contents = input.next()
+
+// contents를 타이핑하면 웹 페이지 내용이 출력된다.
+```
+
+*자바스크립트 REPL이 스칼라 REPL 만큼은 신선하지 못한 두 가지 문제가 있다. 스칼라 REPL에는 명령 완성 기능이 있다. 따라서 탭 키를 누르면 현재 표현식에서 가능한 완성 목록을 얻을 수 있다. 사실 자바스크립트 같은 동적 타입 언어용으로 명령 완성을 만드는 일은 어려운 문제긴 하다. 좀 더 근본적인 누락 기능은 명령행 다시 불러오기다. ↑ 키를 누르면 이전 명령을 얻어올 수 있어야 한다. 이 기능이 작동하지 않으면 rlwrap을 설치하고 rlwrap jjs를 실행한다. 다른 방법으로 이맥스 안에서 jjs를 실행할 수도 있다. 이렇게 한다고 문제가 생기지 않으니 걱정하지 말자. 이맥스를 시작하고 M-x(즉, Alt+x 또는 Esc x) shell엔터를 누른 다음, jjs를 타이핑한다. 그런 다음 평소처럼 표현식을 입력하면 된다. 이전 또는 다음 행을 불러오려면 M-p와 M-n을 사용한다. 같은 행 안에서 움직이려면 왼쪽, 오른쪽 화살표 키를 사용한다. 마지막으로, 명령을 수정한 다음 엔터를 눌러서 실힝한다.*
+
+### 자바에서 Nashorn 실행
+또 다른 용도는 프로그램의 사용자가 스크립트를 실행할 수 있게 해주는 것이다. 자바에서 Nashorn 스크립트를 실행하는 데는 자바 6에서 등장한 스크립트 엔진 메커니즘을 사용한다. 그루비, JRuby 또는 Jython처럼 스크립트 엔진을 갖춘 모든 JVM 언어로 작성한 스크립트를 실행하는데 이 메커니즘을 사용할 수 있다. PHP나 스킴(Scheme)처럼 JVM 밖에서 실행하는 스크립트 엔진도 있다.
+
+스크립트를 실행하려면 ScriptEngine 객체를 얻어야 한다. 엔진이 등록되어 있는 경우에는 단순히 이름으로 얻어올 수 있다. 자바8은 "nashorn"이라는 엔진을 포함한다. 다음은 이 엔진을 사용하는 방법이다.
+
+```
+ScriptEngineManager manager = new ScriptEngineManager();
+ScriptEngine engine = manager.getEngineByName("nashorn");
+Object result = engine.eval("'Hello, World!'.length");
+System.out.println(result);
+```
+
+Reader로부터 스크립트를 읽어올 수도 있다.
+
+```
+Object result = engine.eval(Files.newBufferedReader(path));
+```
+
+자바 객체를 스크립트에서 이용할 수 있게 하려면 ScriptEngine 인터페이스의 put 메서드를 사용한다. 예를 들어, JavaFX 스테이지를 보이게 해서 자바스크립트 코드를 사용해 내용을 채울 수 있다.
+
+```
+public void start(Stage stage) {
+  engine.put("stage", stage);
+  engine.eval(script);    // 스크립트 코드에서 stage로 객체를 접근할 수 있다.
+}
+```
+
+변수를 유효 범위에 두는 대신 Bindings 타입 객체에 모아 놓고, 이 객체를 eval 메서드에 전달할 수 있다.
+
+```
+Bindings scope = engine.createBindings();
+scope.put("stage", stage);
+engine.eval(script, scope);
+```
+
+이 방법은 일련의 바인딩이 이후의 eval 메서드 호출 시점에는 존재하지 않아야 하는 상황에 유용하다.
+
+### 메서드 호출
+스크립트 엔진이 자바 스크립트에서 자바 객체를 접근할 수 있게 해주면 그 다음에는 제공받은 객체를 대상으로 메서드를 호출할 수 있다. 예를 들어, 자바 코드에서 자바 코드에서 다음과 같이 호출했다고 하자. `engine.put("stage", stage);` 이제 자바스크립트 코드는 다음과 같이 호출할 수 있다. `stage.setTitle('Hello')` 사실 다음과 같은 문법을 사용할 수도 있다. `stage.title = 'Hello'`  
+Nashorn은 getter와 setter를 위한 편리한 프로퍼티 문법을 지원한다. 만일 표현식 stage.title이 = 연산자의 왼쪽에 나타나면 setTitle 메서드 호출로 변환된다. 반대로 오른쪽에 나타나면 stage.getTitle() 호출로 변환된다.  
+프로퍼티를 접근하는데 자바스크립트 대괄호 표기법을 사용할 수도 있다. `stage['title'] = 'Hello'` 
+
+[] 연산작의 인자가 문자열이라는 점을 주목하자. 이 문맥에서는 유용하지 않지만 문자열 변수로 stage[str]을 호출하는 방법으로 임의의 프로퍼티에 접근할 수 있다.
+
+*자바스크립트에서는 행 끝의 세미콜론이 옵션이다. 많은 자바스크립트 프로그래머가 세미콜론을 두지만, 이 장에서는 자바와 자바스크립트 코드 조각을 쉽게 구분할 수 있게 세미콜론을 생략한다.*
+
+자바스크립트에는 메서드 오버로딩이라는 개념이 없다. 주어진 이름을 가진 메서드는 오직 한 개만 있을 수 있고, 받을 수 있는 파라미터의 타입과 개수에는 제한이 없다. Nashorn은 파라미터의 개수와 타입에 따라 올바른 자바 메서드를 선택하려고 시도한다. 거의 모든 경우에 제공된 파라미터와 일치하는 자바 메서드는 오직 한개만 있다. 그렇지 않은 경우에는 다음처럼 다소 이상한 문법을 이용해 올바른 메서드를 수동으로 선택할 수 있다.
+
+```
+list['remove(Object)'](1)
+```
+
+여기서는 Integer 객체 1을 list에서 제거하는 remove(Object) 메서드를 지정했다(위치 1에 있는 객체를 제거하는 remove(int) 메서드도 있다).
+
+### 객체 생성
+
+### 문자열
+
+### 숫자
+
+### 배열 작업
+
+### 리스트와 앱
+
+### 람다
+
+### 자바 클래스 확장과 자바 인터페이스
+
+### 예외
+
+### 쉘 스크립팅
+
+### Nashorn과 JavaFX
+
+
+
+
 
 ## 8장 그 외 여러가지 주제
 * 핵심내용

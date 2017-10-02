@@ -1829,8 +1829,70 @@ list['remove(Object)'](1)
 여기서는 Integer 객체 1을 list에서 제거하는 remove(Object) 메서드를 지정했다(위치 1에 있는 객체를 제거하는 remove(int) 메서드도 있다).
 
 ### 객체 생성
+자바스크립트에서 객체를 생성하려고 할 때(스크립트 엔진에서 전달해줄 때와는 반대 경우)는 자바 패키지에 접근하는 방법을 알아야 한다. 자바 패키지 접근에는 두가지 메커니즘이 있다.  
+점 표기법을 통해 패키지와 클래스 객체를 돌려주는 전역 객체 java, javax, javafx, com, org 그리고 edu가 있다. 예를 들면, 다음과 같다.
+
+```
+var javaNetPackage = java.net     // JavaPackage 객체
+var URL = java.net.URL            // JavaClass 객체
+```
+
+앞의 식별자 중 하난로 시직하지 않는 패키지에 접근해야 할 때는 `Package.ch.cern`과 같이 Package 객체에서 찾을 수 있다.  
+Java.type 함수를 호출하는 방법도 있다. `var URL = Java.type('java.net.URL')` 이 방법은 점 표기법을 사용한 java.net.URL 보다 약간 빠르게 동작하며, 더 나은 오류 검사를 받는다(java.net.Url 같은 철자 오류를 내면, Nashorn은 이를 패키지로 생각한다). 하지만 빠른 속도와 훌륭한 오류 처리를 원할 때는 처음부터 스크립팅 언어를 사용하지 않아야 한다.
+
+*Nashorn 문서에서는 자바 파일의 최상단에 임포트 문을 두듯이 클래스 객체를 스크립트 파일의 최상단에 정의하는 방법을 권장한다.*
+
+클래스 객체를 얻은 후에는 정적 메서드를 호출할 수 있다.
+
+```
+var URL = Java.type('java.net.URL')
+var JMath = Java.type('java.lang.Math')
+
+JMath.floorMod(-3, 10)
+```
+
+객체를 생성하려면 자바스크립트 new 연산자에 클래스 객체를 전달한다. 이때 평소처럼 모든 생성자 파라미터를 전달한다.
+
+```
+var URL = java.net.URL
+var url = new URL('http://horstmann.com')
+```
+
+효율성에 신경 쓰지 않는다면 다음과 같이 호출할 수도 있다. `var url = new java.net.URL('http://horstmann.com')`
+
+> Java.type을 new와 함께 사용할 때는 추가로 괄호가 필요하다.
+> var url = new (Java.type('java.net.URL'))('http://horstmann.com')
+
+이너 클래스를 지정할 때는 점 표기법을 사용할 수 있다.
+
+```
+var entry = new java.util.AbstractMap.SimpleEntry('hello', 42)
+
+// Java.type을 사용하는 경우에는 JVM처럼 $ 사용
+var Entry = Java.type('java.util.AbstractMap$SimpleEntry')
+```
 
 ### 문자열
+Nashorn의 문자열은 당연히 자바스크립트 객체다.
+
+```
+'Hello'.slice(-2)   // 결과는 'lo'다
+```
+
+여기서는 자바스크립트 메서드인 slice를 호출한다. 자바에는 이 메서드가 없다. 하지만 다음 호츨은 자바스크립트에 compareTo 메서드가 없는데도 동작한다(자바스크립트에서는 단순히 < 연산자를 사용한다).
+
+```
+'Hello'.compareTo('World')
+```
+
+이 경우 자바스크립트 문자열이 자바 문자열로 변환된다. 일반적으로 자바스크립트 문자열은 자바 메서드에 전달될 때 자바 문자열로 변환된다. 또한, 모든 자바스크립트 객체는 String 파라미터를 받는 자바 메서드에 전달될 때 문자열로 변환된다는 점도 유념하기 바란다. 다음 코드를 보자
+
+```
+// 자바스크립트 RegExp가 자바 String으로 변환된다.
+var path = java.nio.file.Paths.get(/home/)
+```
+
+여기서 /home/ 부분은 정규 표현식이다. Paths.get 메서드는 String을 기대하며, 이 상황에서는 말이 되지 않는데도 실제로 String을 받는다. 이 문제로 Nashorn을 비난하면 안된다. 문자열을 기대할 때는 모든 것을 문자열로 변환하는 일반적인 자바스크립트 동작을 따른 것이다. 숫자와 Boolean 값인 경우에도 마찬가지 변환이 일어난다. 예를 들어, `'Hello'.slice('-2')`는 완전히 유효하며, 문자열 '-2'가 숫자 -2로 소리 없이 변환된다. 이와 같은 특징이 동적 타입 언어를 이용한 프로그래밍을 흥미로운 모험으로 만들어 준다.
 
 ### 숫자
 
@@ -2203,7 +2265,7 @@ Stream<String> acronyms = words.filter(Pattern.compile("[A-Z]{2,}").asPredicate(
 
 여전히 로케일을 `new Locale("en", "US")` 같은 기존 방식으로 생성할 수 있지만, 자바7 이후로는 단순히 `Locale.forLanguageTag("en-US")`를 호출할 수 있다.
 
-언어 범위는 사용자가 원하는 로케일 특성을 기술하는 문자열로, *를 와일드 카드로 사용한다. 예를 들어, 스위스에서 독일어로 말하는 사람은 로케일로 독일어를 가장 선호하고, 이어서 스위스를 선호할 것이다. 이는 문자열 **de**와 **\*-CH**로 지정한 두 Locale.LanguageRange 객체로 표현할 수 있다. 또한, Locale.LangugaeRange를 생성할 때 선택적으로 0 ~ 1 사이의 가중치를 지정할 수 있다.
+언어 범위는 사용자가 원하는 로케일 특성을 기술하는 문자열로, \*를 와일드 카드로 사용한다. 예를 들어, 스위스에서 독일어로 말하는 사람은 로케일로 독일어를 가장 선호하고, 이어서 스위스를 선호할 것이다. 이는 문자열 **de**와 **\*-CH**로 지정한 두 Locale.LanguageRange 객체로 표현할 수 있다. 또한, Locale.LangugaeRange를 생성할 때 선택적으로 0 ~ 1 사이의 가중치를 지정할 수 있다.
 
 filter 메서드는 주어진 가중치 적용 언어 범위 리스트와 로케일의 컬렉션에서 일치하는 로케일들을 일치 순도에 따라 내림차순으로 정렬한 리스트를 리턴한다.
 

@@ -1630,7 +1630,50 @@ text3.setEffect(new GaussianBlur());    // Blur 효과
 ```
 
 ### 화려한 컨트롤
+JavaFX는 스윙과 마찬가지로 콤보 박스, 탭 페인, 테이블 지원은 물론이고 스윙에서는 전혀 볼수 없던 데이트픽커와 어코디언 같은 사용자 인터페이스 컨트롤도 지원한다.  
+다음은 파이 차트를 만드는 코드이다.
 
+```
+ObservableList<PieChart.Data> pieChartData = FXCollections.observableArrayList(
+  new PieChart.Data("Asia", 4298723000.0),
+  new PieChart.Data("North America", 355361000.0),
+  new PieChart.Data("South America", 616644000.0),
+  new PieChart.Data("Europe", 742452000.0),
+  new PieChart.Data("Africa", 1110635000.0),
+  new PieChart.Data("Oceania", 38304000.0),
+);
+final PieChart chart = new PidChart(pidChartData);
+chart.setTitle("Population of the Continents");
+```
+
+사용 및 커스터마이즈 할 수 있ㅇ는 차트 유형은 총 여섯가지다. 더 자세한 정보는 http://docs.oracle.com/javafx/2/chart/chart-overview.htm 을 참고.
+
+스윙에서는 HTML을 JEditPane에서 보여줄 수 있었지만, 대부분의 실세계 HTML을 표시할 때는 렌더링 품질이 떨어졌다. 실제로 브라우저 구현은 아주 어렵기 때문에 대부분의 브라우저는 오픈 소스 웹킷 엔진을 기반으로 만들어졌다. JavaFX도 마찬가지다. WebView는 내장형 네이티브 웹킷 윈도우를 표시한다.
+
+```
+String location = "http://daum.net";
+WebView browser = new WebView();
+WebEngine engine = browser.getEngine();
+engine.load(location);
+```
+
+*WebView는 플러그인을 지원하지 않으므로, 플래시 애니메이션이나 PDF 문서를 보여주는데는 사용할 수 없다. 또한, 애플릿도 보여주지 못한다.*
+
+JavaFX 이전에는 자바에서 미디어 재생 기능이 초라했다. 오디오 및 비디오 재생을 구현하는 작업은 브라우저 구현보다도 어렵기 때문에 JavaFX에서는 이미 존재하는 툴킷인 GStreamer 프레임워크를 이용한다. 비디오를 재생하려면 먼저URL 문자열로부터 Media 객체를 생성한다. 다음으로 미디어를 재생하는 MediaPlayer와 이 플레이어를 보여주는 MediaView를 생성한다.
+
+```
+Path path = Paths.get("moonlanding.mp4");
+String location = path.toUri().toString();
+Media media = new Media(location);
+MediaPlayer player = new MediaPlayer(media);
+player.setAutoPlay(true);
+MediaView view = new MedaiView(player);
+view.setOnError(e -> System.out.println(e));
+```
+
+비디오가 재성되지만, 비디오 컨트롤이 없다. [자신만의 컨트롤](http://docs.oracle.com/javafx/2/media/playercontrol.htm)을 직접 추가할 수 있지만, 기본 컨트롤 집합이 제공되었다면 좋았을 것이다.
+
+*가끔 GStreamer가 특정 비디오 파일을 다룰 수 없을 것이다.코드 샘플에 있는 오류 처리기에서는 재생 문제를 진단할 수 있도록 GStreamer 메시지를 표시한다.*
 
 ## 5장 새로운 날짜 및 시간 API
 * 핵심내용

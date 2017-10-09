@@ -1110,6 +1110,185 @@ Optional<T> 클래스는 flatMap도 제공한다. T -> Optional<U> 함수가 있
 *이들 연산은 모나드 이론에서 중요하다. 하지만 모다드 이론을 알아야만 map과 flapMap을 이해할 수 있는 것은 아니다. 함수를 맵핑하는 개념은 직관적이고도 유용하며, 이 절의 핵심은 독자들이 이 개념을 인식하게 만드는 것이다.*
 
 ## 4장 JavaFX
+1. 자바 GUI 프로그래밍의 간략한 역사
+2. Hello, JavaFX!
+3. 이벤트 처리
+4. JavaFX 프로퍼티
+5. 바인딩
+6. 레이아웃
+7. FXML
+8. CSS
+9. 애니메이션과 특수 효과
+10. 화려한 컨트롤
+
+* 핵심내용
+  * 씬그래프(scene graph)는 다른 노드를 포함할 수도 있는 노드들로 구성된다.
+  * 씬(scene)은 스테이지, 즉 최상위 윈도우, 애플릿 서피스 또는 전체 화면 위에 표시된다.
+  * 버튼 같은 일부 컨트롤은 이벤트를 발생시키지만, 대부분의 JavaFX 이벤트는 프로퍼트 변경으로 발생한다.
+  * JavaFX   프로퍼티는 변경 및 무효화 이벤트를 발생시킨다.
+  * 프로퍼티를 또 다른 프로퍼티에 바인드하면 다른 프로퍼티가 변경될 때 해당 프로퍼티도 업데이트된다.
+  * JavaFX는 스윙의 레이아웃 관리자와 유사하게 동작하는 레이아웃 페인을 사용한다.
+  * FXML 마크업 언어을 이용해 레이아웃을 지정할 수 있다.
+  * 애플리케이션의 외관을 변경하는데 CSS를 이용할 수 있다.
+  * 애니메이션과 특수 효과를 구현하기 쉽다.
+  * JavaFX는 자체적으로 차트, 내장 웹킷 브라우저, 미디어 플레이어 같은 몇 가지 고급 컨트롤을 제공한다.
+
+### 자바 GUI 프로그래밍의 간략한 역사
+AWT(Abstract Windows Toolkit) : 크로스 플랫폼 지원이라는 특징이 있지만 각 운영체제에서 사용자 인터페이스 위젯의 기능에 미묘한 차이점이 존재하여 **한 번 작성하고 어디에서나 실행** 한다는 생각이 결국은 **여러번 작성하고 모든 곳에서 디버그** 하는 결과를 낳음.  
+Swing : 네이티브 위젯을 사용하지 않고 자체적으로 그리는 것. 이 방식으로 사용자 인터페이스는 모든 플랫폼에서 룩앤필을 유지할 수 있게 됨. 원한다면 플랫폼 고유의 룩앤필을 요청할 수도 있음. 하지만 느렸고, 컴퓨터가 빨라지자 UI가 볼품없다고 사용자들은 불평. 그 결과로 플래시를 사용게 됨.  
+JavaFX : 2007년에 플래시의 경쟁 기술로 소개되었지만 자체 언어를 익혀야 하므로 개발자들이 기피함. 2011년에 자바 API로 된 새로운 버전의 JavaFX 2.0 발표하였고 자바 7 업데이터 6부터는 JDK와 JRE에 JavaFX 2.2가 번들됨. 자바8부터는 JavaFX 8로 자바와 버전을 맞춤.
+
+### Hello, JavaFX !
+메시지를 보여주는 간단한 프료그램.
+
+```
+Label message = new Label("Hello, JavaFX !");
+message.setFont(new Font(100));   // 폰트 크기 증가
+```
+
+*눈에 거슬리는 접두어 J가 없다. 스윙에서는 레이블 컨트롤의 이름이 AWT Label과 구분하기 위해 JLabel이다.*
+
+JavaFX에서는 보여주고 싶은 모든 것을 씬(Scene)에 넣는다. 씬에서 '액터' 즉 컨트롤과 도형을 장식하고 애니메이션을 줄 수 있다. 그리고, 이 씬은 반드시 스테이비(Stage)안에 있어야 한다. 스테이비는 프로글매을 데스크톱에서 실행하는 경우 최상위 윈도우를, 애플릿에서 실행하는 경우에는 사각 영역을 의미한다. 스테이지는 Application 클래스의 서브클래스에서 반드시 오버라이드를 해야하는 start 메서드의 파라미터로 전달된다.
+
+```
+public class HelloWorld extends Application {
+
+    @Override
+    public void start(Stage stage) {
+      Label message = new Label("Hello JavaFX !");
+      message.setFont(new Font(100));
+
+      stage.setScene(new Scene(message));
+      stage.setTitle("Hello");
+      stage.show();
+    }
+}
+```
+
+*이 예제에서 볼 수 있듯이 JavaFX 애플리케이션을 실행하는데는 main 메서드가 필요하지 않다. 이전 JavaFX 버전에서는 다음과 같은 형태의 main 메서드를 포함해야 했다.*
+
+```
+public class MyApp extends Application {
+  public static void main(String[] args) {
+    launch(args);
+  }
+}
+```
+
+#### 이벤트 처리
+스윙에서는 버튼 클릭시에 통지를 받을 수 있도록 이벤트 처리기를 버튼에 추가한다. 람다 표현식은 이 작업을 아주 간단하게 만들어준다.
+
+```
+Button red = new Button("Red");
+red.setOnAction(event -> message.setTextFill(Color.RED));
+```
+
+하지만 대부분의 JavaFX 컨트롤에서는 이벤트 처리가 이와 다르다. JavaFX는 프로퍼티의 값이 변할 때 이벤트를 내보낸다.
+
+```
+slider.valueProperty().addListener(property -> message.setFont(new Font(slider.getValue())));
+```
+
+JavaFX에서는 프로퍼티의 이벤트를 수신하는 일이 아주 흔하다. 예를 들어, 사용자가 텍스트 필드에 텍스트를 입력할 때 사용자 인터페이스의 일부를 변경하려는 경우 text 프로퍼티에 리스너를 추가한다.
+
+*버튼은 특수한 경우다. 버튼 클릭은 버튼의 프라퍼티를 변경하지 않는다.*
+
+#### JavaFX 프로퍼티
+프로퍼티는 읽거나 쓸 수 있는 클래스의 속성이다. 필드라고도 한다. 필드에 게터와 세터가 있으면 프라퍼티가 된다. 대입의 오른쪽에 사용하면 게터를 호출하고 왼쪽에 사용하면 세터를 호출한다. 아쉽게도 자바에는 이러한 문법이 없다.  
+하지만, 자바 1.1부터는 관례를 이용한 프로퍼티를 지원한다. 자바빈즈명세에서는 게터/세터 쌍으로부터 프로퍼티를 추정해야 한다고 설명하고 있다. 예를 들어, `String getText()`와 `void setText(String newValue)` 메서드를 포함하는 클래스는 text 프로퍼티가 있는 것으로 간주한다. java.beans 패키지의 Introspector와 BeanInfo 클래스를 이ㅛㅇ하면 클래스의 모든 프포퍼티를 나열 할 수 있다.
+
+자바빈즈 명세는 또한 객체에서 세터가 호출되었때 프로퍼티 변경 이벤트를 내보내는 바운드 프로퍼티를 정의하고 있다. JavaFX는 이 부분은 사용하지 안는다. 대신 JavaFX 프로퍼티는 게터와 세터 외에, Property 인터페이스를 구현하는 객체를 리턴하는 세번째 메서드를 포함한다. 예를 들어, JavaFX text 프로퍼티는 `Property<String> textProperty()`라는 메서드를 포함한다. 프로퍼티 객체에 리스너를 추가할 수 있다. 이점이 전통적인 자바빈즈와 다르다. JavaFX는 Bean이 아니라 Property 객체가 통지를 보낸다. 이러한 변화에는 마땅한 이유가 있다. 바운드 자바빈즈 프로퍼티를 구현하려면 리스너를 추가 및 삭제하고, 리스너에 이벤트를 보내는 상투적인 코드가 필요하다. JavaFX에서는 이 작업을 모두 해주는 라이브러리 클래스들이 존재하기 때문에 훨씬 간편하다.
+
+Greeting 클래스에 text 프로퍼티를 구현하는 방법을 살펴보자.
+
+```
+public class Greeting {
+  private StringProperty text = new SimpleStringProperty("");
+  public final StringProperty textProperty() { return text; }
+  public final void setText(String newValue) { text.set(nweValue); }
+  public final String getText() { return text.get(); }
+}
+```
+
+StringProeprty 클래스는 문자열을 감싼다. 이 클래스는 감싸고 있는 값을 얻고 설정하는 메서드와 리스너를 관리하는 메서드를 포함한다. 여기서 볼 수 있듯이 JavaFX 프로퍼티를 구현할 때도 몇몇 상투적인 코드가 필요하며, 유감스럽게도 자바에서 해당 코드를 자동으로 생성하는 방법은 없다. 하지만 적어도 리스너 관리에는 신경쓰지 않아도 된다.  
+프로퍼티 게터와 세터를 final로 선언하는 것이 필수는 아니지만, JavaFX 설계자들은 이를 권항한다.
+
+*이 패턴에서는 각 프로퍼티에 대해(누군가 주의를 기울리는지 여부와 상관없이) 프로퍼티 객체가 필요하다.*
+
+앞의 예제에서는 StringProperty르 정의했다. 기본 타입 프로퍼티인 경우 IntegerProperty, LongProperty, DoubleProperty, FloatProperty 또는 BooleanProperty 중 하나를 사용한다. 이외에도 ListProperty, MapProperty, SetProperty 클래스가 있다. 나머지 타입에는 ObjectProperty<T>를 사용한다. 이들 모두 SimpleIntegerProeprty, SimpleObjectProperty<T> 같은 구체적인 서브클래스가 있는 추상클래스다.
+
+*리스너 관리에만 관심이 있다면, 프로퍼티 메서드에서 ObjectProperty<T> 클래스나 심지어 Property<T> 인터페이스를 리턴할 수 있다. 프로퍼티를 이용한 계산에는 더 특화된 클래스가 유용하다.*
+
+*프로퍼티 클래스는 get과 set 메서드 외에도 getValue와 setValue 메서드를 포함한다. StringProperty 클래스에서는 get이 getValue와 같고, set이 setValue와 같다. 하지만 기본타입인 경우에는 다르다. 예를 들어, IntegerProperty에서 getValue는 Integer를 get은 int를 리턴한다. 일반적으로 모든 타입의 프로퍼티를 다뤄야 하는 제네릭 ㅗ코드를 작성하지 않는 한 get과 set을 사용한다.*
+
+프로퍼티에 붙일 수 잇는 리스너의 종류는 두가지다. ChangeListener느 ㄴ프로퍼티 값이 변경되었을때 통지를 받고, InvalidationListener는 값이 변경되었을 수 있을때 호출된다. 프로퍼티가 지연 평가된다면 두 경우에 차이가 발생한다. 몇몇 프로퍼티는 다른 프로퍼티로부터 계산되며, 이 계산은 필요할 때만 일어난다. ChangeListener 콜백은 기존 값과 새로운 값을 알려주므로, 먼저 새로운 값을 계산해야 함을 의미한다. InvalidationListener는 새로운 값을 계산하지 않으며, 값이 실제로 변경되지 않았을 때도 콜백을 받을 수 있음을 의미한다.
+
+대부분의 상황에서는 이 차이가 중요하지 않다. 새로운 값을 콜백 파라미터로 얻는지, 프로퍼티로부터 얻는지는 크게 상관이 없다. 그리고 보통은 입력중 하나가 변경되었는데도 계산된 프로퍼티가 변화지 않은 경우를 걱정하지 않아도 된다.
+
+> 숫자 프로퍼티에 ChangeListener 인터페이스를 사용하는 것은 약간 까다롭다. 다음과 같이 호출할 수도 있다.
+> `slider.valueProperty().addListener((property, oldValue, newValue) -> message.setFont(new Font(newValue)));`
+> 위 코드는 동작하지 않는다. DoubleProperty는 Property<Double>이 아니라 Property<Number>를 구현한다. 따라서 oldValue와 newValue의 타입은 Double이 아닌 Number가 되므로 다음과 같이 수동으로 언박싱 처리를 해줘야 한다.
+> `slider.valueProperty().addListener((property, oldValue, newValue) -> message.setFont(new Font(newValue.doubleValue())));`
+
+### 바인딩
+JavaFX 프로퍼티의 존재이유는 **바인딩** 이라는 개념(다른 프로퍼티가 변경될 때 자동으로 특정 프로퍼티를 업데이터하는 것)이다. 한 프로퍼티를 다른 프로퍼티에 바인딩하면 이처럼 할 수 있다.  
+`billing.textProperty().bind(shipping.textProperty());`  
+내부적으로는 shipping의 text 프로퍼티에 billing의 text 프로퍼티를 설정하는 변경리스터가 추가된다. 다음과 같이 호출할 수도 있다. `billing.textProperty().bindBidirectional(shipping.textProperty());` 이 경우 두 프로퍼티 중 하나가 변경되면 다른 하나가 업데이터된다. 바인딩을 취소하려면 unbind 또는 unbindBidirectional을 호출한다.
+
+바인딩 메커니즘은 사용자 인터페이스 프로그래밍에서 흔히 발생하는 문제를 해결한다. 예를 들어, 데이트 필드와 캘린더 픽커가 있다고 하자. 사용자가 캘린더에서 날짜를 선택하면, 모델의 데이트 프로퍼티는 물론 데이터 필드도 자동으로 업데이트되어야 한다.
+
+물론 많은 경우 한 프로퍼티가 다른 프로퍼티에 의존하지만 관계가 더 복잡하다. 항상 씬의 한가운데에 원을 두려고 하면, 원의 centerX 프로퍼티는 씬의 width 프로퍼티의 1/2이 되어야 한다. 이렇게 하려면 계산 프로퍼티를 만들어내야 한다. Bindings 클래스는 이 목적에 사용할 수 있는 정적 메서드를 제공한다. 예를 들어, `Bindings.divide(scene.widthProperty(), 2)` 는 값이 씬 ㅓ닙의 1/2인 프로퍼티를 준다. 씬 너비가 변하면 이 프로퍼티도 변경된다. 남은 것은 계산 프로퍼티를 원의 centerX 프로퍼티에 바인드하는 일이다. `circle.centerXProperty().bind(Bindings.divide(scene.widthProperty(), 2));`
+
+*앞의 호출 대신 `scene.widthProperty().divide(2)`를 호출할 수도 있다. 표현식이 더 복잡해지면 Bindings의 정적 메서드가 좀 더 읽기 쉽다. 정적 임포트를 하면 더 간결해 진다.*
+
+게이지가 너무 작거나 크면 Smaller와 Larger 버튼을 비활성화하려고 하면
+
+```
+smaller.disableProperty().bind(Bindings.lessThanOrEqual(gauge.widthProperty(), 0));
+larger.disableProperty().bind(Bindings.greaterThanOrEqual(gauge.widthProperty(), 100));
+```
+
+다음의 표는 Bindings 클래스가 제공하는 모든 연산자 목록을 보여준다. 이 연산자들의 인자 하나 또는 둘 다 Observable 인터페이스 또는 그 서브인터페이스 중 하나를 구현한다. Observable 인터페이스는 InvalidationListener를 추가하고 삭제하는 메서드를 제공한다. ObservableValue 인터페이스는 여기에 ChangeListener 관리와 getValue 메서드를 추가한다. ObservableValue의 서브인터페이스들은 값을 적절한 타입으로 얻을 수 있는 메서드를 제공한다. 예를 들어, ObservableStringValue의 get 메셔드는 String을, ObservableIntegerValue의 get 메서드는 int를 리턴한다. Bindings에서 제공하는 메서드의 리턴 타입은 Bindig 인터페이스의 서브인터페이스이며, Binding 자체도 Observable의 서브 인터페이스다. Binding은 자신이 의존하는 모든 프로퍼티에 관해 알고 있다. 실전에서는 이들 인터페이스에 대해 걱정하지 않아도 된다. 그저 프로퍼티를 결합하면 다른 프로퍼티에 바인드할 수 있는 무언가를 얻는다.
+
+메서드 이름 | 인자
+------------|------------|------------
+add, subtract, multiply, divide, max, min | ObservableNumberValue, int, log, float, double 두개
+megate | ObservableNumberValue 한개
+greaterThan, greateerThanOrEqual, lessThan, lessThanOrEqual | ObservableNumberValue, int, long, float, double 두 개 또는 ObservableStringValue, String 두개
+equal, notEqual | ObservalueObjectValue, ObservableNumberValue, int, long, float, double, Object 두 개
+equalIgnoreCase, notEqualIgnoreCase | ObservableStringValue, String 두개
+isEmpty, isNotEmpty | Observable(List|Map|Set|String) 한개
+isNull, isNotNull | ObservableObjectValue 한개
+length | ObservableStringValue 한개
+size | Observable(List|Map|Set) 한개
+and, or | ObservableBooleanValue 두개
+not | ObservableBooleanValue 한 개
+convert | 문자열 바인딩으로 변환되는 ObservableValue 한개
+concat | toString 값이 연결될 일련의 객체. 객체 중에 값이 변하는 ObservableValue가 있으면 문자열 연결도 변한다.
+format | 옵션인 로케일, MessageFormat 문자열. 포맷 대상이 되는 일련의 객체. 객체 중에 값이 변하는 ObservableValue가 있으면 포맷된 문자열도 변한다.
+valueAt, (double|float|integer|long)ValueAt, stringValueAt | ObservableList와 인덱스, 또는ObservableMap과 키
+create(Boolean|Double|Float|Integer|Long|Object|String)Binding | Calable과 의존목록
+select, select(Boolean|Double|Float|Integer|Long|String) | Object 또는 ObservableValue 그리고 일련의 public 프로퍼티 이름. *obj.p1.p2.....pn* 프로퍼티를 돌려준다.
+when | 조건 연산자 빌더를 돌려준다. 바인딩 when(*b*).then(*v1*).otherwise(*v2*)는 ObservableBooleanValue *b*가 true인지 아닌지에 따라 *v1* 또는 *v2*를 돌려준다. 여기서 *v1* 또는 *v2*는 일반 또는 옵저버블 값이 될 수 있다. 옵저버블 값이 변하면 조건 값이 다시 계산된다.
+
+Bindings의 메서드를 이용해 계산 프로퍼티를 만드는 일은 상당히 거추장스러울 수 있다. 계산 바인딩을 더 쉽게 만들어내는 또 다른 접근법이 있다. 단순히 계산하고자 하는 표현식을 람다 안에 넣고, 의존 프로퍼티 목록을 제공하는 것이다. 의존 프로퍼티 중 하나가 변경되면 해당 람다가 다시 계산된다. 예를 들면, 다음과 같다.
+
+```
+larger.disableProperty.bind(
+  createBooleanBinding(
+    () -> gauge.getWidth() >= 100,    // 이 표현식이 계산된다.
+    gauge.widthProperty()             // 이 프로퍼티가 변할때
+  )
+);
+```
+
+*JavaFX 스크립트 언어에서는 컴파일러가 바인딩 표현식을 분석해 자동으로 의존 프로퍼티들을 찾아낸다. 따라서 단순히 disable bind gauge.width >= 100 과 같이 선언하면 컴파일러가 gauge.width 프포퍼티에 리스너를 붙여준다. 물론 자바에서는 프로그래머가 이러한 정보를 제공해야 한다.*
+
+### 레이아웃
+디자인 도구를 이용하는 방법은 다국어 버전 프로그램의 경우 레이블의 길이가 달라질수 있다.  
+Swing에서 처럼 프로그래밍을 통해 레이아웃을 만드는 방법.  
+CSS같은 선언형 언어로 레이아웃을 지정하는 방법.  
+JavaFX는 세가지 방법 모두 지원. [JavaFX SceneBuilder](http://www.oracle.com/technetwork/java/javase/downloads/javafxscenebuilder-1x-archive-2199384.html)
 
 ## 5장 새로운 날짜 및 시간 API
 * 핵심내용
@@ -1895,24 +2074,319 @@ var path = java.nio.file.Paths.get(/home/)
 여기서 /home/ 부분은 정규 표현식이다. Paths.get 메서드는 String을 기대하며, 이 상황에서는 말이 되지 않는데도 실제로 String을 받는다. 이 문제로 Nashorn을 비난하면 안된다. 문자열을 기대할 때는 모든 것을 문자열로 변환하는 일반적인 자바스크립트 동작을 따른 것이다. 숫자와 Boolean 값인 경우에도 마찬가지 변환이 일어난다. 예를 들어, `'Hello'.slice('-2')`는 완전히 유효하며, 문자열 '-2'가 숫자 -2로 소리 없이 변환된다. 이와 같은 특징이 동적 타입 언어를 이용한 프로그래밍을 흥미로운 모험으로 만들어 준다.
 
 ### 숫자
+자바스크립트는 명시적으로 정수를 지원하지 않는다. 자바스크립트의 Number 타입은 자바의 double 타입과 같다. int 또는 long을 기대하는 자바 코드에 숫자를 전달하면 소수부가 소리없이 제거된다. 예를 들어, `'Hello'.slice(-2.99)`는 `'Hello'.slice(-2)`와 같다.  
+Nashorn은 효율성을 위해 계산을 가능하면 정수로 유지하지만, 이 차이는 일반적으로 눈에 띄지 않는다. 다음은 차이가 드러나는 한가지 상황을 보여준다.
+
+```
+var price = 10
+java.lang.String.format('Price: %.2f', price)   // 오류: java.lang.Integer에는 f형식이 유효하지 않다.
+```
+
+price 값은 정수고, format 메서드는 Object... 가변인자 파라미터를 받기 때문에 이 값이 Object에 대입된다. 따라서 Nashorn은 java.lang.Integer를 만든다. 하지만 f 형식은 부동소수점 수에 사용할 목적으로 만들어졌기 때문에 결국 format 메서드 호출은 실패한다. 이 예제에서는 Number 함수를 호출해서 java.lang.Double로 강제 변환할 수 있다.
+
+```
+java.lang.String.format('Unit price: %.2f', Number(price))
+```
 
 ### 배열 작업
+자바 배열을 생성하려면 우선 클래스 객체를 만들어야 한다.
+
+```
+var intArray = Java.type('int[]')
+var StringArray = Java.type('java.lang.String[]')
+// 다음으로 new 현산자를 호출하면서 배열의 길이를 전달
+var numbers = new intArray(10)
+var names = new StringArray(10)
+numbers[0] = 42
+print(numbers[0])
+// 향상된 for 루프
+for each (var elem in names) {
+  print(elem)
+}
+// 인덱스가 필요하다면
+for (var i in names) {
+  print(names[i])
+}
+```
+
+> 위 루프(`for (var i...)`)는 자바의 향상된 for 루프처럼 보이지만 인덱스 값을 방문한다. 자바스크립트 배열은 요소들이 드문드문 있을 수 있다. 자바스크립트 배열을 다음과 같이 초기화한다고 하자.
+> var names = []
+> names[0] = 'Fred'
+> names[2] = 'Barney'
+> 이 경우 루프 `for (var i in names) print(i)`는 0과 2를 출력한다.
+
+자바와 자바스크립트 배열은 아주 다르다. 자바 배열을 기대하는 기대하는 위치에 자바스크립트 배열을 전달하면 Nashorn이 변환을 수행한다. 하지만 때로는 이 변환을 도와야 한다. 주어진 자바스크립트 배열에 해당하는 자바 배열을 얻으로면 Java.to 메서드를 사용한다.
+
+```
+var javaNames = Java.to(names, StringArray)   // String[] 타입 배열
+// 자바 배열을 자바스크립트 배열로 변환하려면 Java.forn을 사용
+var jsNumbers = Java.from(numbers)
+jsNumbers[-1] = 42
+```
+
+오버로딩과 관련한 모호함을 해결하려면 Java.to를 사용해야 한다. 예를 들어 다음은 Nashorn에서 int[] 배열로 변환해야 하는지, 아니면 Object[] 배열로 변환해야 하는지 판단할 수 없기 때문에 모호하다.
+
+```
+java.util.Arrays.toString([1, 2, 3])
+// 이 상황에서는 다음과 같이 호출해야 한다.
+java.util.Arrays.toString(Java.to([1, 2, 3], Java.type('int[]')))
+// 또는
+java.util.Arrays.toString(Java.to([1, 2, 3], 'int[]'))
+```
 
 ### 리스트와 앱
+Nashorn은 자바 리스트와 맵을 위한 *달콤한 문법(Syntactic sugar)*을 제공한다. 모든 자바 List에 대괄호 연산자를 사용해 get과 set 메서드를 호출할 수 있다.
+
+```
+var names = java.util.Arrays.asList('Fred', 'Wilma', 'Barney')
+var first = names[0]
+names[0] = 'Duke'
+// 대괄호 연산자는 자바 맵에도 동작한다.
+var scores = new java.util.HashMap
+scores['Fred'] = 10     // scores.put('Fred', 10)을 호출한다.
+
+// 맵 순회
+for (var key in scores) ...
+for each (var value in scores) ...
+for each (var e in scores.entrySet)) {
+  e.key와 e.value를 처리
+}
+```
+
+*for each 루프는 Itreable 인터페이스를 구현하는 모든 자바 클래스를 대상으로 동작한다.*
 
 ### 람다
+자바스크립트는 다음과 같은 익명함수를 지원한다.
+
+```
+var square = function(x) { return x * x }
+var result = square(2)
+```
+
+문법적으로 이러한 익명 함수는 자바의 람다 표현식과 아주 유사하다. 자바 메서드의 함수형 인터페이스 인자로 익명 함수를 사용할 수 있다.
+
+```
+java.util.Arrays.sort(words,
+  function(a, b)
+    { return java.lang.Integer.compare(a.length, b.length)}
+)
+```
+
+Nashorn은 몸체가 단일 표현식인 함수의 단축 형식을 지원한다. 이런 함수에서는 중괄호와 return 키워드를 생략할 수 있다.
+
+```
+java.util.Arrays.sort(words, function(a, b) java.lang.Integer.compare(a.length, b.length))
+```
+
+*'표현식 클로저'라 부르는 이 단축 표기법은 공식 자바스크립트 언어 표준(ECMAScript5.1)의 일부는 아니지만, 모질라 자바스크립트 구현체에서도 지원한다.*
 
 ### 자바 클래스 확장과 자바 인터페이스
+자바 클래스를 활장하거나 자바 인터페이스를 구현하려면 Java.extend 함수를 사용한다. 이때 슈퍼클래스 또는 인터페이스의 클래스 객체와 오버라이드 또는 구현하려는 메서드를 포함하는 자바스크립트 객체를 전달한다. 예를 들어, 다음은 무한으로 난수를 생산하는 반복자(Iterator)다. 여기서는 next와 hasNext 두 메서드를 오버라이드한다. 각 메서드의 구현을 익명 자바스크립트 함수로 제공한다.
+
+```
+var RandomIterator = Java.extend(java.util.Iterator, {
+  next: function() Math.random(),
+  hasNext: function() true
+})    // RandomIterator는 클래스 객체다.
+var iter = new RandomIterator()
+```
+
+*Java.extend를 호출할 때 슈퍼클래스와 슈퍼인터페이스를 몇 개든 지정할 수 있다. 필요한 모든 클래스 객체를 실제 구현 메서드를 포함하는 객체 앞에 나열하면 된다.*
+
+또 다른 Nashorn 문법 확장을 이용하면 인터페이스 또는 추상 클래스의 익명 서브클래스를 정의할 수 있다. 자바스크립트 객체 앞에 new JavaClassObject가 있으면 확장된 클래스의 객체가 리턴된다. 예를 들면, 다음과 같다.
+
+```
+var iter = new java.util.Iterator {
+  next: function() Math.random(),
+  hasNext: function() true
+}
+```
+
+슈퍼타입이 추상이고 추상 메서드를 하나만 포함하면, 메서드 이름조차 명시하지 않아도 된다. 대신 함수를 생성자 파라미터처럼 전달한다.
+
+```
+var task = new java.lang.Runnable(function() { print('Hello') })
+// task는 Runnable을 구현하는 익명 클래스의 객체다.
+```
+
+> 구체 클래스를 확장할 때는 이와 같은 생성자 문법을 사용할 수 없다. 예를 들어, new java.lang.Thread(function() { print('Hello')})는 Thread 생성자인 Thread(Runnable)을 호출한다. 따라서 new 호출로 Thread의 서브클래스가 아니라 Thread 클래스의 객체를 리턴한다.
+
+서브클래스에서 인스턴스 변수가 필요한 경우에는 해당 변수를 자바스크립트 객체에 추가한다. 예를 들어, 다음은 난수 10개를 만들어내는 반복자다.
+
+```
+var iter = new java.util.Iterator {
+  count: 10,
+  next: function() { this.count--; return Math.random() },
+  hasNext: function() this.count > 0
+}
+```
+
+메서드를 오버라이드할 때 슈퍼클래스 메서드를 호출하는 일도 가능하지만 아주 까다롭다. Java.super(obj) 호출은 obj가 속한 클래스의 슈퍼클래스 메서드를 호출할 수 있게 해주는 객체를 돌려주지만, 먼저 해당 obj 객체가 존재해야 한다. 다음은 슈퍼클래스 메서드를 호출하는 방법을 보여준다.
+
+```
+var arr = new (Java.extend(java.util.ArrayList)) {
+  add: function(x) {
+    print('Adding ' + x);
+    return Java.super(arr).add(x)
+  }
+}
+```
+
+이제 arr.add('Fred')를 호출하면 값이 ArrayList에 추가되기에 앞서 메시지가 출력된다. Java.super(arr) 호출에서는 new를 통해 리턴되는 값으로 설정되는 arr 변수가 필요하다는 점을 주목하기 바란다. Java.super(this)로 호출하면 동작하지 않는다(이렇게 하면 자바 프록시가 아닌 해당 메서드를 정의하는 자바스크립트 객체를 얻을 뿐이다). Java.super 메커니즘은 서브클래스가 아니라 개별 객체를 정의하는 경우에만 유용하다.
+
+*Java.super(arr).add(x)를 호출하는 대신 arr.super$add(x) 문법을 사용할 수도 있다.*
 
 ### 예외
+자바 메서드에서 예외를 던질 때 평소 방법대로 자바스크립트에서 잡을 수 있다.
+
+```
+try {
+  var first = list.get(0)
+  ...
+} catch (e) {
+  if (e instanceof java.lang.IndexOutOfBoundException) {
+    print('list is empty')
+  }
+}
+```
+
+예외를 타입으로 잡을 수 있는 자바와는 달리 catch 절이 하나만 있다는 점을 주목하자. 이 또한 모든 타입 조사가 실행시에 일어나는 동적 언어 방식이다.
 
 ### 쉘 스크립팅
+컴퓨터에서 반복적인 작업을 자동화해야 한다면 명령을 쉘 스크립트안에 둘 수 있다. 
+
+#### 쉘 명령 실행하기
+Nashorn에서 스크립팅 확장을 사용하려면 다음 명령을 실행한다. `$ jjs -scripting` 아니면 다음 명령을 실행하도 된다. `$ jrunscript`  
+이제 다음 예와 같이 쉘 명령을 역 따옴포 안에 넣어서 실행할 수 있다.
+
+```
+\`ls -al\`
+```
+
+최근 명령의 표준 출력과 표준 오류 스트림이 $OUT과 $ERR로 캡처된다. 명령의 종료 코드는 $EXIT에 들어 있다(관례에 따라 종료 코드 0은 성공을 0이 아닌 종료 코드는 오류 상황을 나타낸다).  
+역 따옴표로 감싼 명령의 결과를 변수에 대입하는 방법으로 표준 출력을 캡처할 수도 있다.
+
+```
+var output = \`ls -al\`
+```
+
+명령에 표준 입력을 제공하고 싶을 때는 다음 함수를 사용한다. `$EXEC(command, input)` 예를 들어, 다음 명령은 ls -al의 출력을 grep -v class에 전달한다.
+
+```
+$EXEC('grep -v class', \`ls -al\`)
+```
+
+파이프만큼 깔끔하지는 않지만, 필요하면 파이프를 쉽게 구현할 수 있다.
+
+#### 문자열 인터폴레이션
+${...} 내부에 있는 표현식은 큰따옴표 또는 역 따옴표로 감싼 문자열 안에서 평가된다. 이를 '문자열 인터폴레이션(문자열 채워넣기-string interpolation)'이라고 한다. 예들 들어, 다음 코드는 변수 classpath와 mainclass의 내용을 명령 안에 집어넣는다.
+
+```
+var cmd = "javac -classpath ${classpath} ${mainclass}.java"
+$EXEC(cmd)
+```
+
+또는 단순히 다음과 같이 해도 같은 결괄르 얻는다. `\`javac -classpath ${classpath} ${mainclass}.java\``  
+${...} 안에 임의의 표현식을 사용할 수 있다.
+
+```
+var message = "The curent time is ${java.time.Instant.now()}"
+// message를 The current time is 2013-10-12T21:48:58.545Z 같은 문자열로 설정한다.
+```
+
+Bash 쉘과 마찬가지로 작은따옴표로 감싼 문자열 안에서는 문자열 인터폴레이션이 동작하지 안는다.
+
+```
+var message = 'The current time is ${java.time.Instant.now()}'
+// message를 The current time is ${java.time.Instant.now()} 문자열로 설정한다.
+```
+
+문자열은 '즉석 문서(스크립트 내부의 인라인 문서)' 안에서도 인터폴레이션 된다. 이러한 인라인 문서는 명령이 표준 입력에서 여러 행을 읽고, 스크립트 작성자가 입력을 별도의 파일로 두고 싶지 않을 때 유용하다. 예를 들어, 다음은 GlassFish 관리 도구에 명령을 제공하는 방법을 보여준다.
+
+```
+name='myapp'
+dir='/opt/apps/myapp'
+$EXEC("asadmin", <<END)
+start-domain
+start-database
+deploy ${name} ${dir}
+exit
+END
+```
+
+<<END 구문은 "다음 행부터 시작하고 END 행으로 마치는 문자열을 삽입하라"는 의미다(문자열 내부에 나타나지 않는 어떤 식별자든 END 대신 사용할 수 있다). 여기서는 애플리케이션의 이름과 위치가 인터폴레이션 된다는 점을 주목하기 바란다. 문자열 인터폴레이션과 즉석 문서는 ㅓ오직 스크립팅 모드에서만 이용할 수 있다.
+
+#### 스크립트 입력
+스크립트에 명령행 인자를 제공할 수 있다. jjs 명령행에 여러 스크립트 파일을 포함할 수 있기 때문에 스크립트 파일과 인자를 더블하이픈(--)으로 구분해야 한다.
+
+```
+$ jjs script1.js script2.js -- arg1 arg2 arg3
+```
+
+*이 명령행은 조금 보기 불편하다. 스크립트 파일이 한 개만 있을 때는 대신 다음과 같이 실행할 수 있다.
+$ jrunscript -f script.js arg1 arg2 arg3*
+
+> 스크립트의 첫번째 행은 '쉬뱅-shebang(스크립트 인터프리터의 위치가 뒤따라오는 #! 기호)'이 될 수 있다.
+> #!/opt/java/bin/jjs
+> 또는 다음과 같이 해도 된다.
+> #!/opt/java/bin/jrunscript -f
+> 그 다음은 해당 스크립트 파일을 실행 파일로 만들어 단순히 path/script.js로 실행할 수 있다. 스크립트가 쉬뱅으로 시작할 때는 스크립팅 모드가 자동으로 활성화 된다.
+
+> 스크립트에서 인자를 받고 쉬뱅에 jjs를 사용하면, 스크립트 사용자가 --을 사용해야 한다(예를 들면, path/script.js -- arg1 arg2 arg3). 사용자는 이 부분을 좋아하지 않을 것이다 이런 경우에는 대신 jrunscript를 사용해야 한다.
+
+스크립트 파일에서는 명령행 인자를 arguments 배열로 받는다.
+
+```
+var deployCommand = "deploy ${arguments[0]} ${arguments[1]}"
+```
+
+jjs를 이용할 때는 arguments 대신 $ARG를 사용할 수 있다(jrunscript에서는 사용 불가). $ARG 객체를 문자열 인터폴레이션과 함께 사용할 때는 달러 기홀르 두 번 사용해야 한다.
+
+```
+var deployCommand = "deploy ${$ARG[0]} ${${ARG[1]}"
+```
+
+스크립트 안에서 $ENV 객체를 통해 쉘의 환경 변수를 얻을 수 있다. `var javaHome = $ENV.JAVA_HOME` 스크립팅 모드에서는 readLine 함수를 이용해 사용자에게 입력을 유도할 수 있다. `var username = readLine('Username: ')`  
+마지막으로 스크립트를 종료하려면 exit 함수를 사용한다. 이때 추가로 종료 코드를 제공할 수 있다.
+
+```
+if (username.length == 0) exit(1)
+```
 
 ### Nashorn과 JavaFX
+Nashorn은 JavaFX 애플리케이션을 실행하는 편리한 방법을 제공한다. 단순히 평소 Application 서브클래스의 start 메서드에 집어넣던 명령어들을 스크립트 안에 넣으면 된다. Stage 파라미터에는 $STAGE를 사용한다. 심지어 Stage 객체의 show를 호출할 필요도 없다(내부적으로 대신 호출된다). 예를 들어, 다음은 4장에서 살펴본 "Hello" 프로그램을 자바스크립트로 작성한 버전이다.
 
+```
+var message = new javafx.scene.control.Label("Hello, JavaFX!");
+message.font = new javafx.scene.text.Font(100);
+$STAGE.scene = new javafx.scene.Scene(message);
+$STAGE.title = "Hello";
+```
 
+다음과 같이 -fx 옵션을 지정해 스크립트를 실행한다.  `$ jjs -fx hellofx.js` 이게 전부다. "Hello"라는 타이틀이 붙은 윈도우 안에 "Hello, JavaFX!" 메시지를 담은 레이블이 100포인트 폰트로 표시단다. `message.setFont(new Font(100))` 대신 `message.font = new Font(100)` 으로 사용할 수 있다.
 
+*start 외에 Application 클래스의 생명 주기 메서드인 init 또는 stop을 오버라이드해야 하는 경우에는 해당 메서드를 스크립트에서 최상위 레벨에 포함한다. 그런 다음 -fx 옵션을 이용하면 스크립트 메서드를 포함하는 Application의 서브클래스를 얻는다.*
 
+이제 이벤트 처리를 살펴보자. 4장에서 살펴본 것처럼 대부분의 JavaFX 이벤트는 JavaFX 프로퍼티 리스너를 통해 처리된다. 이 부분에서 자바스크립트의 사정은 썩 좋지 않다. JavaFX 프로퍼티는 InvalidationListener와 ChangeListener 두 리스너 인터페이스(둘 다 addListener로 추가한다)를 가진다는 점을 상기하기 바란다. 자바에서 람다 표현식으로 addListener를 호출하면, 컴파일러는 파라미터 타입으로부터 둘 중 어느 리스너를 추가할지 알 수 있다. 하지만 자바스크립트에서는 함수 파라미터에 타입이 없다. 폰트 크길르 제어하는 슬라아더가 있다고 하자. 슬라이더 값이 변할 때 폰트 크기를 업데이트하는 리스너를 추가하려고 한다.
+
+```
+// 오류 - Nashorn은 어느 리스너 타입을 추가할지 판단하지 못한다.
+slider.valueProperty().addListener(function(property)
+  message.font = new Font(slider.value)
+)
+```
+
+Nashorn은 추가하고자 하는 리스너가 InvalidationListener인지 ChangeListener인지 모르기 때문에 직접 선택을 해야 한다.
+
+```
+slider.valueProperty().addListener(
+  new javafx.beans.InvalidationListener(function(property)
+    message.font = new Font(slider.value)
+  )
+)
+```
+
+결과적으로 자바 코드보다 무겁다(적어도 경량 스크립팅 언어에서 보고 싶은 코드는 아니다). 
 
 ## 8장 그 외 여러가지 주제
 * 핵심내용
@@ -1941,7 +2415,7 @@ String ids = String.join(", ", ZoneId.getAvailableZoneIds());
 Short, Integer, Long, Float, Double 이 5가지 타입은 스트림 연산에서 리덕션 함수로 유용하게 사용할 수 있는 정적 메서드(sum, max, min)을 포함.
 Boolean 클래스는 같은 목적으로 정적 메서드 localAnd, logicalOr, logicalXor를 포함.
 
-정수 타입들은 이제 부호 없는 산술 연산을 지원. 예를 들어 -128 ~ 127 범위를 표현하는 Byte 대신, 정적 메서드 `Byte.toUnsignedInt(b)를 호출하여 0 ~ 255 사이의 값을 얻을 수 있다.
+정수 타입들은 이제 부호 없는 산술 연산을 지원. 예를 들어 -128 ~ 127 범위를 표현하는 Byte 대신, 정적 메서드 `Byte.toUnsignedInt(b)`를 호출하여 0 ~ 255 사이의 값을 얻을 수 있다.
 Byte와 Short 클래스는 toUnsignedInt 메서드를 포함하며 Byte, Short, Integer 클래스는 toUnsignedLong 메서드를 포함.
 
 Integer와 Long 클래스는 부호 없는 값을 다루는 compareUnsigned, divideUnsigned, remainderUnsigned 메서드를 포함.

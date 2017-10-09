@@ -1399,7 +1399,7 @@ GridPane pane = GridPaneBuilder.create()
     ).build();
 ```
 
-*굉장히 장황한데도 이게 끝이 아니다(여전히 그리드 제약 조건을 지정해야 한다). JavaFX 8에서는 장황한 이유보다는 구현 문제로 빌더 사용을 권장하지 않는다. 코드를 절약하기 위해 빌더는 각각 상응하는 노드의 상속 구조와 일치하는 상속 트리를 갖춘다. 예를 들면, GridPane이 Pane을 상속하기 때문에 GridPaneBuilder는 PaneBuilder를 상속한다. 하지만 여기서 문제가 생긴다. PaneBuilder.children은 무엇을 리턴해야 할까? 만일 PaneBuilder를 리턴하면 사용자는 서브클래스 프로퍼티를 설정한 후에 슈퍼클래스 프로퍼티를 설정하도록 상당한 주의를 기울려야 한다. JavaFX 설계자들은 이 문제를 제너릭으로 해결하려고 노력했다. PaneBuilder<B>의 메서드는 B를 리턴함으로써 GridPaneBuilder가 PaneBuilder<GridPaneBuilder>를 상속할 수 있게 한다. 잠깐, 이 방법은 동작하지 않는다. GridPaneBuilder 자체가 제네릭이기 때문에 GridPaneBuilder<GridPaneBuilder>여야 하며, 실제로는 `GridPaneBuilder<GridPaneBuilder<something>>`이 된다. 이와 같은 순환성을 몇가지 트릭으로 극복했지만 이러한 트릭은 불안정하기 때문에 자바의 차기 버전에서는 동작하지 않을 것이다. 따라서 빌더 개발은 철회되었다. 빌더 형태를 좋아한다면 스칼라나 그루비의 JavaFX 바인딩을 사용할 수 있다.*
+*굉장히 장황한데도 이게 끝이 아니다(여전히 그리드 제약 조건을 지정해야 한다). JavaFX 8에서는 장황한 이유보다는 구현 문제로 빌더 사용을 권장하지 않는다. 코드를 절약하기 위해 빌더는 각각 상응하는 노드의 상속 구조와 일치하는 상속 트리를 갖춘다. 예를 들면, GridPane이 Pane을 상속하기 때문에 GridPaneBuilder는 PaneBuilder를 상속한다. 하지만 여기서 문제가 생긴다. PaneBuilder.children은 무엇을 리턴해야 할까? 만일 PaneBuilder를 리턴하면 사용자는 서브클래스 프로퍼티를 설정한 후에 슈퍼클래스 프로퍼티를 설정하도록 상당한 주의를 기울려야 한다. JavaFX 설계자들은 이 문제를 제너릭으로 해결하려고 노력했다. PaneBuilder\<B\>의 메서드는 B를 리턴함으로써 GridPaneBuilder가 PaneBuilder\<GridPaneBuilder\>를 상속할 수 있게 한다. 잠깐, 이 방법은 동작하지 않는다. GridPaneBuilder 자체가 제네릭이기 때문에 GridPaneBuilder\<GridPaneBuilder\>여야 하며, 실제로는 `GridPaneBuilder<GridPaneBuilder<something>>`이 된다. 이와 같은 순환성을 몇가지 트릭으로 극복했지만 이러한 트릭은 불안정하기 때문에 자바의 차기 버전에서는 동작하지 않을 것이다. 따라서 빌더 개발은 철회되었다. 빌더 형태를 좋아한다면 스칼라나 그루비의 JavaFX 바인딩을 사용할 수 있다.*
 
 ### FXML
 JavaFX에서 레이아웃을 기술하는데 사용하는 마크업 언어를 FXML이라고 한다. 로그인 다이얼로그에 해당하는 FXML 마크업이다.

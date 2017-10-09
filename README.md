@@ -1254,7 +1254,7 @@ larger.disableProperty().bind(Bindings.greaterThanOrEqual(gauge.widthProperty(),
 
 
 메서드 이름 | 인자
-------------|------------|------------
+------------|------------
 add, subtract, multiply, divide, max, min | ObservableNumberValue, int, log, float, double 두개
 megate | ObservableNumberValue 한개
 greaterThan, greateerThanOrEqual, lessThan, lessThanOrEqual | ObservableNumberValue, int, long, float, double 두 개 또는 ObservableStringValue, String 두개

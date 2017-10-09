@@ -712,7 +712,7 @@ public interface Predicate {
 
 실전에서는 보통 람다 표현식이나 메서드 레퍼런스를 전달하기 때문에 메서드의 이름은 실제로 문제가 되지 않는다.  
 
-*Stream.filter의 선언부를 자세히 살펴보면 와일드카드 타입 Predicate<? super T>를 주목하게 될 것이다. 흔히 함수 파라미터로 이와 같은 타입을 사용한다. 예를 들어 Employee는 Person의 서브클래스이고, Stream<Employee>가 있다고 하자. 이 경우 Predicate<Employee>, Predicate<Person> 또는 Preicate<Object>로 스트림을 필터링할 수 있다(여기서 T는 Employee). 이와 같은 유연성은 메서드 레퍼런스를 전달할 때 특히 중요한다. 예를들어, Stream<Employee>를 필터링 하는 데 Person::isAlive를 사용하려 한다고 하자. 이 작업은 순전히 filter 메서드의 파라미터에 있는 와일드카드 덕분에 동작한다.*
+*Stream.filter의 선언부를 자세히 살펴보면 와일드카드 타입 `Predicate<? super T>`를 주목하게 될 것이다. 흔히 함수 파라미터로 이와 같은 타입을 사용한다. 예를 들어 Employee는 Person의 서브클래스이고, `Stream<Employee>`가 있다고 하자. 이 경우 `Predicate<Employee>, Predicate<Person>` 또는 `Preicate<Object>`로 스트림을 필터링할 수 있다(여기서 T는 Employee). 이와 같은 유연성은 메서드 레퍼런스를 전달할 때 특히 중요한다. 예를들어, `Stream<Employee>`를 필터링 하는 데 Person::isAlive를 사용하려 한다고 하자. 이 작업은 순전히 filter 메서드의 파라미터에 있는 와일드카드 덕분에 동작한다.*
 
 다음표는 Stream과 Collectors에 속한 메서드들의 파라미터로 나타나는 함수형 인터페이스를 요약해서 보여준다.  
 스트림 API에서 사용하는 함수형 인터페이스

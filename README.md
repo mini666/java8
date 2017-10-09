@@ -439,7 +439,7 @@ public static Optional<Double> inverse(Double x) {
 `ofNullable` 메서드는 null 값 사용을 옵션 값으로 이어주는 용도로 만들어졌다. `Optional.ofNullable(obj)`는 obj가 null이 아니면 `Optional.of(obj)`를 null이면 `Optional.empty()`를 리턴한다.
 
 #### flatMap을 이용해 옵션 값 함수 합성하기
-`Optional<T>`를 리턴하는 메서드 f가 있고, 대상 타입 T는` Optional<U>`를 리턴하는 메서드 g를 포함하고 있다고 할 때, 일반 메서드라면 s.f().g()를 호출하는 방법으로 이 메서드들을 합성할 수 잇다. 하지만 이 경우에는 s.f()에서 T가 아닌 Options<T> 타입을 리턴하므로 이러한 합성이 동작하지 않는다. 대신 다음과 같이 호출한다. `Optional<U> result = s.f().flatMap(T::g);` 이렇게 하면 s.f()가 존재하면 g가 적용되고, 그렇지 않으면 비어 있는 Optional<U>가 리턴된다. 앞 예제의 inverse 메서드에 안전한 루트 메서드도 있다고 하자.
+`Optional<T>`를 리턴하는 메서드 f가 있고, 대상 타입 T는 `Optional<U>`를 리턴하는 메서드 g를 포함하고 있다고 할 때, 일반 메서드라면 s.f().g()를 호출하는 방법으로 이 메서드들을 합성할 수 잇다. 하지만 이 경우에는 s.f()에서 T가 아닌 Options<T> 타입을 리턴하므로 이러한 합성이 동작하지 않는다. 대신 다음과 같이 호출한다. `Optional<U> result = s.f().flatMap(T::g);` 이렇게 하면 s.f()가 존재하면 g가 적용되고, 그렇지 않으면 비어 있는 Optional<U>가 리턴된다. 앞 예제의 inverse 메서드에 안전한 루트 메서드도 있다고 하자.
 
 ```
 public static Optional<Doube> squareRoot(Double x) {
@@ -462,7 +462,7 @@ Optional<Integer> sum = values.reduce((x, y) -> x + y);
 ```
 
 연산은 결합 법칙을 지원해야 하고 병렬 스트림을 통한 효율적인 리덕션이 가능하다.  
-*`e op x = x'* 같은 항등값 *e*가 있을 때는 해당 요소를 계산의 시작으로 사용할 수 있다.
+*`e op x = x`* 같은 항등값 *e*가 있을 때는 해당 요소를 계산의 시작으로 사용할 수 있다.
 
 ```
 Stream<Integer> values = ...;
@@ -480,7 +480,8 @@ int result = words.reduce(0,
 ```
 
 *실전에서는 reduce 메서드를 많이 사용하지 않을 것이다. 보통은 숫자 스트림에 맵핑한 후 스트림의 합계, 최대값, 최소값 계산 메서드를 사용하는 것이 더 쉽다. 앞의 예제에서는 `words.mapToInt(String::length).sum()`을 호출하는 방법으로 해결할 수 있고 이렇게 하면 박싱이 일어나지 않기 때문에 더 단순하면서도 더 효율적이다.*
-c### 결과 모으기
+
+### 결과 모으기
 스트림 작업을 마칠 때 보통은 값으로 리듀스하기보다는 결과를 살펴보길 원하기 마련이다. 이때 요소들을 방문하는데 사용할 수 있는 잔통적인 반복자를 돌려주는 iterator 메서드를 호출할 수 있고 다른 방법으로 toArray를 호출해서 스트림 요소들의 배열을 얻을 수 있다. 실행 시간에 제너릭 배열을 생성할 수 없기 때문에 `Stream.toArray()`는 Object[]를 리턴한다. 올바른 타입의 배열을 원하는 경우 배열 생성자를 전달한다. `String[] result = words.toArray(String::new);`  
 이제 HashSet에 결과를 모드려 한다고 하자. HashSet 객체는 스레드에 안전하지 않기 때문에 컬렉션을 병렬화하면 요소들을 단일 HashSet에 넣을 수 없다. 이와 같은 이유로 reduce를 사용할 수 없다. 각 부분은 자체적인 빈 해시 집합으로 작업을 시작해야 하는데 reduce는 항등값 하나만 전달하도록 허용한다. 따라서 reduce 대신 collect를 사용해야 한다. collect는 세가지 인자를 받는다.
 1. 공급자(supplier) : 대상 객체의 새로운 인스턴스를 만든다.
@@ -513,6 +514,7 @@ String result = stream.map(Object::toString).collect(Collectors.joining(", "));
 ```
 
 스트림 결과를 합계, 평균, 최대값, 최소값으로 리듀스하려는 경우 summarizing(Int|Long|Double) 메서드 중 하나를 사용한다. 이들 메서드는 스트림 객체를 숫자로 맵핑하는 함수를 받고 합계, 평균, 최대값, 최소값을 얻는 메서드를 제공하는 (Int|Long|Double)SummaryStatistics 타입 결과를 돌려준다.
+
 
 ```
 IntSummaryStatistics summary = words.collect(Collectors.summarizingInt(String::length));

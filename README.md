@@ -1292,7 +1292,346 @@ larger.disableProperty.bind(
 디자인 도구를 이용하는 방법은 다국어 버전 프로그램의 경우 레이블의 길이가 달라질수 있다.  
 Swing에서 처럼 프로그래밍을 통해 레이아웃을 만드는 방법.  
 CSS같은 선언형 언어로 레이아웃을 지정하는 방법.  
-JavaFX는 세가지 방법 모두 지원. [JavaFX SceneBuilder](http://www.oracle.com/technetwork/java/javase/downloads/javafxscenebuilder-1x-archive-2199384.html)
+JavaFX는 세가지 방법 모두 지원. [JavaFX SceneBuilder](http://www.oracle.com/technetwork/java/javase/downloads/javafxscenebuilder-1x-archive-2199384.html)  
+프로그래밍을 통한 레이아웃은 스윙과 아주 유사하나 임의의 패널에 추가되는 레이아웃 관리자대신 Pane을 사용한다. 페인이란 레이아웃 정책을 갖춘 컨테이너를 말한다. 예를 들어, BorderPane은 North, West, South, East, Center 라는 다섯개 영역을 포함한다.
+
+```
+BorderPane pane = new BorderPane();
+pane.setTop(new Button("Top"));
+pane.setLeft(new Button("Left"));
+pane.setCenter(new Button("Center"));
+pane.setRight(new Button("Right"));
+pane.setBotton(new Button("Bottom"));
+stage.setScene(new Scene(pane));
+```
+
+*스윙의 BorderLayout에서는 버튼이 레이아웃의 각 영역을 채우도록 늘어난다. 하지만 JavaFX에서는 버튼이 자연스러운 크기 이상으로 늘어나지 않는다.*
+
+South 영역에 버튼을 두개 이상 배치 하려 한다면 HBox를 사용한다.
+
+```
+HBox buttons = new HBox(10);    // 컨트롤 간 10픽셀
+buttons.getChilder().addAll(yesButton, noButton, maybeButton);
+```
+
+컨트롤을 세로로 배치하는 VBox도 있다.
+
+```
+VBox pane = new VBox(10);
+pane.getChildren().addAll(question, buttons);
+pane.setPadding(new Insets(10));
+```
+
+> JavaFX에서는 치수를 픽셀로 지정한다. 오늘날에는 기기마다 픽셀 밀도가 크게 다를 수 있기 때문에 픽셀 단위 지정이 그리 적합하지 않다. 이 문제를 극복하는 한가지 방법은 치수를 CSS3에서처럼 rem 단위로 계산하는 것이다. 여기서 rem, 즉 'root em'은 문서 루트의 기본 폰트 높이를 말한다.
+> `final double rem = new Text("").getLayoutBounds().getHeight();`
+> `pane.setPadding(new Inset(0.8 * rem));`
+
+HBox, VBox로는 원하는 레이아웃을 만드는데 한계가 있다. 스윙에서 '모든 레이아웃 관리자의 어머니'로 GridBagLayout을 포함하는 것과 마찬가지로 JavaFX는 GridPane을 포함한다. GridPane이 HTML 테이블에 해당한다고 생각하면 된다. 모든 셀의 수평 및 수직 정렬을 설정할 수 있다. 원한다면 셀은 여러 행과 열을 차지할 수 있다. 일반적인 로그인 대화상자를 고려해 보자.
+
+* 레이블 "User name:"과 "Password:"는 오른쪽 정렬된다.
+* 버튼들은 2개 열을 차지하는 HBox 안에 위치한다.
+
+GridPane에 추가할 때는 열과 행 인텍스(각각 *x, y* 좌표로 생각하면 된다)를 지정한다.
+
+```
+pane.add(usernameLable, 0, 0);
+pane.add(username, 1, 0);
+pane.add(passwordLable, 0, 1);
+pane.add(password, 1, 1);
+```
+
+자식이 여러 열 도는 행을 차지하면, 위치 다음에 해당 스팬(Span)을 지정한다. `pane.add(buttons, 0, 2, 2, 1)` 은 버튼 패널이 2열 1행을 차지한다. 자식이 남아있는 모든 행 또는 열을 차지하게 하려면 `GridPazne.REMAINING`을 사욯할 수 있다.
+
+자식의 수평 정렬을 설정하려면 정적 setHalignment 메서드를 사용하고, 이 메서드에 해당 자식의 레퍼런스와 열거 타입 HPos의 상수 LEFT, CENTER 또는 RIGHT를 전달한다. `GridPane.setHalignment(usernameLabel, HPos.RIGHT);`  
+유사하게 수직 정렬인 경우 열거 타입 VPos의 TOP, CENTER, BOTTOM을 ㅣ용해 setValignment를 호출한다.
+
+*자바 코드에서는 이러한 정적 메서드 호출이 우아하지 못하게 보이지만, FXML에서는 일리가 있는 방법이다.*
+
+> 그리드 안에서 버튼을 포함하는 HBox를 가운데 정렬하지 말자. 박스는 그리드의 가로 크기만큼 확장되기 때문에 가운데 정렬을 통해 위치가 변경되지 않는다. 대신 다음과 같이 HBox가 내용을 가운데 정렬하게 해야 한다.
+> `buttons.setAlignment(Pos.CENTER);`
+
+행과 열 사이에 간격을 주고, 테이블 주변에 패딩을 넣고 싶으면 다음과 같이 한다.
+
+```
+pane.setHgap(0.8 * em);
+pane.setVgap(0.8 * em);
+pane.setPadding(new Insets(0.8 * em));
+```
+
+> 디버깅할 때는 셀의 경계를 보면 유용할 수 있다. 셀의 경계를 보려면 다음과 같이 호출한다. `pane.setGridLinesVisible(true);`
+> 개별 자식 컨트롤의 경계를 보려면 해당 컨트롤의 경계를 설정한다(예를 들면, 자식 컨트롤이 전체 셀을 채우도록 확장되는지 확인할때). CSS를 이용하면 가장 쉽게 할 수 있다.
+> buttons.setStyle("-fx-border-color: red;");
+
+페인 클래스 | 설명
+------------|------------
+HBox, VBox | 자식을 가로, 세로로 배치한다.
+GridPane | 스윙의 GridBagLayout과 유사하게 자식들을 테이블 형태 그리드에 배치한다.
+TilePane | 스윙의 GridLayout과 유사하게 자식들을 그리드에 배치하고 모든 자식에 같은 크기를 부여한다.
+BorderPane | 스윙의 BorderLayout과 유사하게 North, East, South, West, Center 영역을 제공한다.
+FlowPane | 스윙의 FlowLayout과 유사하게 행 안에 자식들을 흘려서 배치하며, 충분한 공간이 없을 때는 새로운 행을 만든다.
+AnchorPane | 자식들을 절대 위치로 배치하거나 페인의 경계를 기준으로 상대적으로 배치할 수 있다. SceneBuilder 레이아웃 도구의 기본값이다.
+StackPane | 자식들을 서로 쎃아서 배치한다. 색상을 입힌 사각형 위에 버튼을 배치할 때처럼 컴포넌트들을 장식하는데 유용하다.
+[JavaFX에서 제공하는 모든 레이아웃]
+
+*이 절에서는 페인과 컨트롤들을 수작업으로 중첩해서 사용자 인터페이스를 만들었다. JavaFX 스크립트에서는 이렇게 중첩된 구조(씬 그래프)를 기술하는데 사용하는 빌더 문법을 지원했다. JavaFX 2에서는 이 문법을 흉내 내는 빌더 클래스를 사용했다. 다음은 빌더 클래스를 이용해 로그인 다얼로그를 만드는 방법이다.*
+```
+GridPane pane = GridPaneBuilder.create()
+  .hgap(10)
+  .vgap(10)
+  .padding(new Insets(10))
+    .children(
+      usernameLabel = LabelBuilder.create()
+        .text("User name:")
+        .build(),
+      passwordLabel = LabelBuilder.create()
+        .text("Password:")
+        .build(),
+      username = TextFieldBuilder.create().build(),
+      password = PasswordFieldBuilder.create().build(),
+      buttons = HBoxBuilder.create()
+        .spacing(10)
+        .alignment(Pos.CENTER)
+        .children(
+          okButton = ButtonBuilder.create().text("Ok").build(),
+          cancelButton = ButtonBuilder.create().text("Cancel").build()
+        ).build()
+
+    ).build();
+```
+
+*굉장히 장황한데도 이게 끝이 아니다(여전히 그리드 제약 조건을 지정해야 한다). JavaFX 8에서는 장황한 이유보다는 구현 문제로 빌더 사용을 권장하지 않는다. 코드를 절약하기 위해 빌더는 각각 상응하는 노드의 상속 구조와 일치하는 상속 트리를 갖춘다. 예를 들면, GridPane이 Pane을 상속하기 때문에 GridPaneBuilder는 PaneBuilder를 상속한다. 하지만 여기서 문제가 생긴다. PaneBuilder.children은 무엇을 리턴해야 할까? 만일 PaneBuilder를 리턴하면 사용자는 서브클래스 프로퍼티를 설정한 후에 슈퍼클래스 프로퍼티를 설정하도록 상당한 주의를 기울려야 한다. JavaFX 설계자들은 이 문제를 제너릭으로 해결하려고 노력했다. PaneBuilder<B>의 메서드는 B를 리턴함으로써 GridPaneBuilder가 PaneBuilder<GridPaneBuilder>를 상속할 수 있게 한다. 잠깐, 이 방법은 동작하지 않는다. GridPaneBuilder 자체가 제네릭이기 때문에 GridPaneBuilder<GridPaneBuilder>여야 하며, 실제로는 `GridPaneBuilder<GridPaneBuilder<something>>`이 된다. 이와 같은 순환성을 몇가지 트릭으로 극복했지만 이러한 트릭은 불안정하기 때문에 자바의 차기 버전에서는 동작하지 않을 것이다. 따라서 빌더 개발은 철회되었다. 빌더 형태를 좋아한다면 스칼라나 그루비의 JavaFX 바인딩을 사용할 수 있다.*
+
+### FXML
+JavaFX에서 레이아웃을 기술하는데 사용하는 마크업 언어를 FXML이라고 한다. 로그인 다이얼로그에 해당하는 FXML 마크업이다.
+
+```
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<GridPane hgap="10" vgap="10">
+  <padding>
+    <Insets top="10" right="10" bottom="10" left="10" />
+  </padding>
+  <children>
+    <Label text="User name:"
+      GridPane.columnIndex="0" GridPane.rowIndex="0"
+      GridPane.halignment="RIGHT" />
+    <Lable text="Password:"
+      GridPane.columnIndex="0" GridPane.rowIndex="1"
+      GridPane.halignment="RIGHT" />
+    <TextField GridPane.columnIndex="1" GridPane.rowIndex="0" />
+    <PasswordField GridPane.columnIndex="1" GridPane.rowIndex="1" />
+    <HBox GridPane.columnIndex="0" GridPane.rowIndex="2"
+          GridPane.columnSpan="2" alignment="CENTER" spacing="10" >
+      <children>
+        <Buton text="Ok" />
+        <Button text="Cancel" />
+      </children>
+    </HBox>
+  </children>
+</GridPane>
+```
+
+`<GridPane hgap="10" vgap="10">` GridPane 생성후 hgap과 vgap 설정.  
+속성이 클래스 이름으로 시작하고 정적 메서드가 오면 해당 메서드가 호출된다. `<TextField GridPane.columnIndex="1" GridPane.rowIndex="0" />`은 정적 메서드인 `GridPane.setColumnIndex(thisTextField, 1)`과 `GridPane.setRowIndex(thisTextField, 0)`이 호출됨을 의미한다.
+
+*일반적으로 FXML 요소는 자바빈즈 명세에 입각해 디폴트 생성자로 생성되며, 프로퍼티 세터나 정적 메서드를 호출함으로써 커스터마이즈된다. 몇가지 예외는 나중에 살펴본다.*
+
+FXML 파일은 다음과 같이 로드한다.
+
+```
+public void start(Stage stage) {
+  try {
+    Parent root = FXMLLoader.load(getClass().getResource("dialog.fxml"));
+    stage.setScene(new Scene(root));
+    state.show();
+  } catch (IOException e) {
+    e.printStackTrace();
+    System.exit(0);
+  }
+}
+```
+
+이 자체로는 유용하지 않다. 사용자 인터페이스가 표시되지만 프로그램은 사용자가 제공한 값들을 접근할 수 없기 때문이다. 컨트롤과 프로그램 사이를 연결하는 한가지 방법은 자바스크립트에서처럼 id 속성을 사용하는 것이다. 다음과 같이 FXML 파일에 id 속성을 제공한다.
+
+```
+<TextField id="username" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+```
+
+다음으로 프로그램에서 해당 컨트롤을 조회한다. `TextField username = (TextField)root.lookup("#username");`  
+이것보다 좋은 방법은 @FXML 어노테이션을 사용해 컨트롤러 클래스에 컨트롤 객체를 주입할 수 있다. 컨트롤러 클래스는 반드시 Initializable 인터페이스를 구현해야 한다. 컨트롤러의 initialize 메서드는 바인더와 이벤트 처리기를 설치한다. 심지어 FX 애플리케이션 자체를 포함해 어떤 클래스든 컨트롤러가 될 수 있다.  
+예를 들어, 다음은 로그인 다이얼로그용 컨트롤러다.
+
+```
+public class LoginDialogController implements Initializable {
+  @FXML private TextField username;
+  @FXML private PasswordField password;
+  @FXML private Button okButton;
+
+  public void initialize(URL url, ResourceBundle rb) {
+    okButton.disableProperty().bind(
+      Bindings.createBooleanBinding(
+        () -> username.getText().lenght() == 0 || password.getText().length() == 0,
+        username.textProperty(),
+        password.textProperty()
+      )
+    );
+    okButton.setOnAction(event -> System.out.println("Verifying " + username.getText() + ":" + password.getText()));
+  }
+}  
+```
+
+FXML에서는 (id가 아닌) fx:id 속성을 이용해 FXML의 컨트롤 요소에 해당하는 컨트롤러의 인스턴스 변수 이름을 제공한다.
+
+```
+<TextField fx:id="username" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+<PasswordField fx:id="password" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+<Button fx:id="okButton" text="Ok" />
+```
+
+또한 루트 요소에서 fx:controller 속성를 사용해 컨트롤러 클래스를 선언해야 한다.
+
+```
+<GridPane xmlns:fx="http://javafx.com/fxml" hgap="10" vgap="10" fx:controller="LoginDialogController">
+```
+
+*컨트롤러에 디폴트 생성자가 없으면(아마도 비즈니스 서비스에 대한 레퍼런스로 초기화되기 때문일 것이다) 프로그래밍을 통ㅎ 설정할 수 있다.*
+
+```
+FXMLLoader loader = new FXMLLoader(getClass().getResource(...));
+loader.setController(new Controller(service));
+Parent root = (Parent)loader.load();
+```
+
+> 프로그래밍을 통해 컨트롤러를 설정하는 경우 실제로 위의 코드를 사용한다. 다음 코드는 컴파일은 되지만 정적 메서드인 FXMLLoader.load를 호출해 먼저 생성해둔 로더를 무시하게 된다.
+> `FXMLLoader loader = new FXMLLoader();`
+> `loader.setController(...);`
+> `Parent root = (Parent)loader.load(getClass().getResource(...));  // 오류 - 정적 메서드를 호출한다.`
+
+FXML 파일이 로드될 때 씬 그래프가 만들어지고, 이름을 지정한 컨트롤 객체에 대한 레퍼런스가 컨트롤러 객체의 어노테이션을 붙인 필드에 주입된다. 그런 다음 initialize 메서드가 호출된다. 심지어 FXML 파일에서 대부분의 초기화를 수행할 수도 있다. 단순한 바인딩을 정의하고 어노테이션을 붙인 컨트롤러 메서드를 이벤트 리스너로 설정할 수 있다. 문법은 http://docs.oracle.com/javafx/2/api/javafx/fxml/doc-files/introduction_to_fxml.html 에 문서화되어 있다. 가장 좋은 방법은 시각적인 디자인을 프로그램 동작으로부터 분리하여 사용자 인터페이스 디자이너는 디자인을 만들어내고, 프로그래머는 동작을 구현할 수 있게 하는 것이다.
+
+### CSS
+JavaFX는 CSS를 이용해 사용자 인터페이스의 외관을 변경할 수 있게 해준다. 보통은 CSS를 이용하는 방법이 FXML 속성을 전달하거나 자바 메서드를 호출하는 방법보다 훨씬 편리하다. 프로그래밍을 통해 CSS 스타일 시트를 로그하고 씬 그래프에 적용할 수 있다.
+
+```
+Scene scene = new Scene(pane);
+scene.setStylesheets().add("scene.css");
+```
+
+스타일시트에서는 ID가 있는 모든 컨트롤을 참조할 수 있다. 예를 들어, 다음은 GridPane의 외관을 제어하는 봉법을 보여준다. 코드에서는 ID를 설정한다.
+
+```
+GridPane pane = new GridPane();
+pane.setId("pane");
+```
+
+코드에서 패딩이나 간격을 설정하지 않고 CSS를 사용한다.
+
+```
+#pane {
+  -fx-padding: 0.5em;
+  -fx-hgap: 0.5em;
+  -fx-vgap: 05em;
+  -fx-background-image: url("metal.jpg")
+}
+```
+
+유감스럽게도 익숙한 CSS 속성을 사용할 수 없고, -fx-로 시작하는 FX 전용 속성을 알아야 한다. 속성 이름은 프로퍼티 이름을 소문자로 바꾸고, 낙타식 표기 대산 하이픈을 사용해 만들어진다. 예를 들어, textAlignment 프로퍼티는 -fx-text-alignment 속성이 된다. ["JavaFX CSS 레퍼런스"](http://docs.oracle.com/javafx/2/api/javafx/scene/doc-files/cssref.html)에서 지원되는 모든 속성을 찾을 수 있다.
+
+레이아웃 세부 사항으로 코드를 어지럽히는 것보다 CSS를 사용하는 것이 좋다. 더욱이 해상도에 독립적인 em 단위를 쉽게 사용할 수 있다.
+
+개별 ID로 스타일을 주는 대신 스타일 클래스를 사용할 수 있다.
+
+```
+HBox buttons = new HBox();
+buttons.getStyleClass().add("buttonrow");
+
+// css
+.buttonrow {
+  -fx-spacing: 0.5em;
+}
+```
+
+모든 JavaFX 컨트롤과 도형 클래스는 자바 클래스 이름을 소문자로 바꾼 CSS 클래스에 속한다. 예를 들어, 모든 Label 노드는 label 클래스에 소간다. 다음은 모든 레이블의 폰트를 Comic Sans로 변경하는 방법이다.
+
+```
+.label {
+  -fx-font-family: "Comic Sans MS";
+}
+```
+
+하지만 이렇게 하지 말자.  
+FXML 레이아웃과 함께 CSS를 사용할 수도 있다. 먼저 다음과 같이 루트 페인에 스타일 시트를 첨부한다. `<GridPane id="pane" stylesheets="scene.css">` 다음으로 FXML 쿄드에 id 또는 styleClass 속성을 넣는다. `<HBox styleClass="buttonrow">`  
+이제 대부분의 스타일링을 CSS에서 지정하고 FXML은 레이아웃용으로만 사용할 수 있다. 불행히도 FXML에서 모든 스타일링을 완진히 제거할 수는 없다. 예를 들어, 아직까지는 CSS에서 그리드 셀 정렬을 지정할 수 있는 방법이 없다.
+
+*다음과 같이 프로그래밍을 통해 CSS 스타일을 적용할 수도 있다. `buttons.setStyle("-fx-border-color: red;");` 이렇게 하면 디버깅에는 유용하지만, 일반적으로 외부 스타일시트를 사용하는 것이 좋다.*
+
+### 애니메이션과 특수 효과
+JavaFX가 생거날 당시 특수 효과가 엄청나게 유행했다. JavaFX는 Shadow, Blur, Movement를 만들어내기 쉽게 해준다. 웹에서 많은 데모를 찾을 수 있다.  
+JavaFX는 일정 시간 동안 노드의 프포퍼티를 변하게 하는 다양한 트랜지션을 정의한다. 다음은 3초 동안 노드를 *x, y* 방향으로 커지게 하는 방법이다.
+
+```
+ScaleTransition st = new ScaleTransition(Duration.millis(3000));
+st.setByX(1.5);
+st.setByY(1.5);
+st.setNode(yesButton);
+st.play();
+```
+
+기본으로 트랜지션은 목표점을 만나면 종료한다. 다음과 같이 무한정 반복되게 할 수 있다.
+
+```
+st.setCycleCount(Animation.INDDEFINTE);
+st.setAutoReverse(true);
+```
+
+FadeTransition은 노드의 불투명도를 변경한다. 다음은 No 버튼을 배경으로 사라지게 하는 방법이다.
+
+```
+FadeTransition ft = new FadeTransition(Duration.millis(3000));
+ft.setFromValue(1.0);
+ft.setToValue(0);
+ft.setNode(noButton);
+ft.play();
+```
+
+모든 JavaFX 노드는 자신의 중앙을 기준으로 회전할 수 있다. RotateTransition은 노드의 rotate 프로퍼티를 변경한다. 다음 코드는 Maybe 버튼의 회전에 애니메이션을 준다.
+
+```
+RotationTransition rt = new RotateTransition(Duration.millis(3000));
+rt.setByAngle(180);
+rt.setCycleCount(Animation.INDEFINITE);
+rt.setAutoReverse(true);
+rt.setNode(maybeButton);
+rt.play();
+```
+
+ParallelTransition과 SequentialTransition 콤비네이터를 이용하면 트랜지션을 합성해 병렬 또는 순차적으로 수행할 수있다. 여러 노드에 애니메이션을 적용해야 하는 경우 Group 노드에 집어넣고, 이 노드에 애니메이션을 줄 수 있다. 이와 같은 종류의 동작을 만들어야 할때 JavaFX의 클래스들을 이용하면 좋다.  
+특수효과 또한 적용하기가 아주 쉽다. 만일 멋진 캡션에 드롭 새도우가 필요하면 DropShadow 효과를 만들어서 노드의 effect 프로퍼티로 설정한다. Text 노드에 드롭 새도우를 적용하는 코드이다.
+
+```
+DropShadow dropShadow = new DropShadow();
+dropShadow.setRadius(5.0);
+dropShadow.setOffsetX(3.0);
+dropShadow.setOffsetY(3.0);
+dropShadow.setColor(Color.GRAY);
+
+Text text = new Text();
+text.setFill(Color.RED);
+text.setText("Drop shadow");
+text.setFont(Font.font("sans", FondWeight.BOLD, 40));
+text.setEffect(dropShadow);
+
+text2.setEffect(new Glow(0.8));     // Glow 효과
+text3.setEffect(new GaussianBlur());    // Blur 효과
+```
+
+### 화려한 컨트롤
+
 
 ## 5장 새로운 날짜 및 시간 API
 * 핵심내용

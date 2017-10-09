@@ -1252,7 +1252,6 @@ larger.disableProperty().bind(Bindings.greaterThanOrEqual(gauge.widthProperty(),
 
 다음의 표는 Bindings 클래스가 제공하는 모든 연산자 목록을 보여준다. 이 연산자들의 인자 하나 또는 둘 다 Observable 인터페이스 또는 그 서브인터페이스 중 하나를 구현한다. Observable 인터페이스는 InvalidationListener를 추가하고 삭제하는 메서드를 제공한다. ObservableValue 인터페이스는 여기에 ChangeListener 관리와 getValue 메서드를 추가한다. ObservableValue의 서브인터페이스들은 값을 적절한 타입으로 얻을 수 있는 메서드를 제공한다. 예를 들어, ObservableStringValue의 get 메셔드는 String을, ObservableIntegerValue의 get 메서드는 int를 리턴한다. Bindings에서 제공하는 메서드의 리턴 타입은 Bindig 인터페이스의 서브인터페이스이며, Binding 자체도 Observable의 서브 인터페이스다. Binding은 자신이 의존하는 모든 프로퍼티에 관해 알고 있다. 실전에서는 이들 인터페이스에 대해 걱정하지 않아도 된다. 그저 프로퍼티를 결합하면 다른 프로퍼티에 바인드할 수 있는 무언가를 얻는다.
 
-
 메서드 이름 | 인자
 ------------|------------
 add, subtract, multiply, divide, max, min | ObservableNumberValue, int, log, float, double 두개
@@ -1273,7 +1272,6 @@ valueAt, (double|float|integer|long)ValueAt, stringValueAt | ObservableList와 �
 create(Boolean|Double|Float|Integer|Long|Object|String)Binding | Calable과 의존목록
 select, select(Boolean|Double|Float|Integer|Long|String) | Object 또는 ObservableValue 그리고 일련의 public 프로퍼티 이름. *obj.p1.p2.....pn* 프로퍼티를 돌려준다.
 when | 조건 연산자 빌더를 돌려준다. 바인딩 when(*b*).then(*v1*).otherwise(*v2*)는 ObservableBooleanValue *b*가 true인지 아닌지에 따라 *v1* 또는 *v2*를 돌려준다. 여기서 *v1* 또는 *v2*는 일반 또는 옵저버블 값이 될 수 있다. 옵저버블 값이 변하면 조건 값이 다시 계산된다.
-
 
 Bindings의 메서드를 이용해 계산 프로퍼티를 만드는 일은 상당히 거추장스러울 수 있다. 계산 바인딩을 더 쉽게 만들어내는 또 다른 접근법이 있다. 단순히 계산하고자 하는 표현식을 람다 안에 넣고, 의존 프로퍼티 목록을 제공하는 것이다. 의존 프로퍼티 중 하나가 변경되면 해당 람다가 다시 계산된다. 예를 들면, 다음과 같다.
 
@@ -1362,6 +1360,8 @@ pane.setPadding(new Insets(0.8 * em));
 > 개별 자식 컨트롤의 경계를 보려면 해당 컨트롤의 경계를 설정한다(예를 들면, 자식 컨트롤이 전체 셀을 채우도록 확장되는지 확인할때). CSS를 이용하면 가장 쉽게 할 수 있다.
 > buttons.setStyle("-fx-border-color: red;");
 
+JavaFX에서 제공하는 모든 레이아웃
+
 페인 클래스 | 설명
 ------------|------------
 HBox, VBox | 자식을 가로, 세로로 배치한다.
@@ -1371,7 +1371,6 @@ BorderPane | 스윙의 BorderLayout과 유사하게 North, East, South, West, Ce
 FlowPane | 스윙의 FlowLayout과 유사하게 행 안에 자식들을 흘려서 배치하며, 충분한 공간이 없을 때는 새로운 행을 만든다.
 AnchorPane | 자식들을 절대 위치로 배치하거나 페인의 경계를 기준으로 상대적으로 배치할 수 있다. SceneBuilder 레이아웃 도구의 기본값이다.
 StackPane | 자식들을 서로 쎃아서 배치한다. 색상을 입힌 사각형 위에 버튼을 배치할 때처럼 컴포넌트들을 장식하는데 유용하다.
-[JavaFX에서 제공하는 모든 레이아웃]
 
 *이 절에서는 페인과 컨트롤들을 수작업으로 중첩해서 사용자 인터페이스를 만들었다. JavaFX 스크립트에서는 이렇게 중첩된 구조(씬 그래프)를 기술하는데 사용하는 빌더 문법을 지원했다. JavaFX 2에서는 이 문법을 흉내 내는 빌더 클래스를 사용했다. 다음은 빌더 클래스를 이용해 로그인 다얼로그를 만드는 방법이다.*
 ```
@@ -1911,6 +1910,7 @@ Instant 클래스는 java.util.Date와 유사. Date 클래스에 Instant로 변�
 ZonedDateTime은 java.util.GregorianCalendar에 해당하며 GregorianCalendar에 toZonedDateTime, from 메서드를 추가.
 
 java.time 클래스들과 레거시 클래스들 사이의 변환
+
 클래스 | 레거시 클래스로 변환 | 레거시 클래스로부터 변환
 ------------|------------|------------
 Instant ↔ java.util.Date | Date.from(instant) | date.toInstant()

@@ -317,7 +317,7 @@ public static Stream<Character> characterStream(String s) {
 
 characterStream("boat")는 스트림 ['b', 'o', 'a', 't']를 리턴한다. 이 메서드를 문자열의 스트림에 맵핑한다고 하자. `Stream<Stream<Character>> result = words.map(w -> characterStream(w));` 결과로 [...['y', 'o', 'u', 'r'], ['b', 'o', 'a', 't'], ...] 처럼 스트림들로 구성된 스트림을 얻는다. 이 스트림을 문자들의 스트림 [... 'y', 'o', 'u', 'r', 'b', 'o', 'a', 't', ...]로 펼쳐내려면 map 대신 flatMap을 사용한다. `Stream<Character> letters = words.flatMap(w ->characterStream(w))`  
 
-*스트림 외의 클래스에서도 `flatMap` 메서드를 접할 것이다. `flatMap`은 컴퓨터 과학에서 일반적인 개념이다. 제네릭 타입 G(예를 들면 Stream), 타입 T를 G<U>로 변환하는 함수 f 그리고 타입 U를 G<V>로 변환하는 함수 g가 있다고 하자. 그러면 flatMap을 사용해서 이 함수들을 합성 할 수 있다(즉, 먼저 를 적용한 후 g를 적용한다). 이는 모나드 이른에서 핵심 개념이다.*
+*스트림 외의 클래스에서도 `flatMap` 메서드를 접할 것이다. `flatMap`은 컴퓨터 과학에서 일반적인 개념이다. 제네릭 타입 G(예를 들면 Stream), 타입 T를 G<U>로 변환하는 함수 f 그리고 타입 U를 G<V>로 변환하는 함수 g가 있다고 하자. 그러면 flatMap을 사용해서 이 함수들을 합성 할 수 있다(즉, 먼저 f를 적용한 후 g를 적용한다). 이는 모나드 이론에서 핵심 개념이다.*
 
 ### 서브스트림 추출과 스트림 결과
 `stream.limit(n)` 호출은 n개 요소 이후(n보다 짧은 경우는 모두) 끝나는 새로운 스트림을 리턴한다.  
@@ -331,7 +331,7 @@ Stream<String> words = Stream.of(contents.split("[\\P{L}]+")).skip(1);
 Stream<Character> combined = Stream.concat(characterStream("Hello"), charaterStream("World"));
 ```
 
-*`peek` 메서드는 원본과 동일한 요소들을 포함하는 다른 스트림을 돌려주짐나, 전달받은 함수를 요소 추출 시마다 호출한다. 따라서 디버깅 수행때 유용하다.*
+*`peek` 메서드는 원본과 동일한 요소들을 포함하는 다른 스트림을 돌려주지만, 전달받은 함수를 요소 추출 시마다 호출한다. 따라서 디버깅 수행때 유용하다.*
 
 ```
 Object[] powers = Stream.iterate(1.0, p -> p * 2).peek(e -> System.out.println("Fetching " + e)).limit(20).toArray();
@@ -339,20 +339,20 @@ Object[] powers = Stream.iterate(1.0, p -> p * 2).peek(e -> System.out.println("
 *이 방법으로 `iterte` 메서드가 리턴하는 무한 스트림이 지연 처리됨을 확인할 수 있다.*
 
 ### 상태 유지 변환
-지금까지 살펴본 스트림 변환은 무상태 변환이다. 다시 말해 필터링 또는 맵핑도니 스트림에서 요소를 추출할때 결과가 이전 요소에 의존하지 않는다. 몇가지 상태 유지 변환도 존재한다. 예를들어 distinct 메서드는 중복을 제거하는 점을 제외하면 원본 스트림으로부터 요소들을 같은 순서로 돌려주는 스트림을 리턴한다. 이 경우 스트림은 이미 만난 요소들을 확실히 기억해야 한다.
+지금까지 살펴본 스트림 변환은 무상태 변환이다. 다시 말해 필터링 또는 맵핑된 스트림에서 요소를 추출할때 결과가 이전 요소에 의존하지 않는다. 몇가지 상태 유지 변환도 존재한다. 예를들어 distinct 메서드는 중복을 제거하는 점을 제외하면 원본 스트림으로부터 요소들을 같은 순서로 돌려주는 스트림을 리턴한다. 이 경우 스트림은 이미 만난 요소들을 확실히 기억해야 한다.
 
 ```
 Stream<String> uniqueWords =
   = Stream.of("merrily", "merrily", "merirly", "gently").distinct();
 ```
   
-`sorted` 메서드는 요소들을 돌려주기 전에 반드시 전체 스트림을 보고 정렬해야 한다. 무한 스트림은 정렬할 수 없다. `sorted` 메서드는 여러 버전이 있는데 한 버번은 Comparable 요소들의 스트림을 대상으로 작업하고 또 다른 버전은 Comparator를 받은다.
+`sorted` 메서드는 요소들을 돌려주기 전에 반드시 전체 스트림을 보고 정렬해야 한다. 무한 스트림은 정렬할 수 없다. `sorted` 메서드는 여러 버전이 있는데 한 버전은 Comparable 요소들의 스트림을 대상으로 작업하고 또 다른 버전은 Comparator를 받는다.
 
 ```
 Stream<String> longestFirst = words.sorted(Comparator.comparing(String::Length).reversed()));
 ```
 
-`sorted` 메서드는 정렬 과정이 스트림 파이르파인의 일부일때 유용하다.
+`sorted` 메서드는 정렬 과정이 스트림 파이프라인의 일부일때 유용하다.
 
 *`Collections.sort` 메서드는 컬렉션을 직접 정렬한다. 한편 `Stream.sorted` 메서드는 새롭게 정렬된 스트림을 리턴한다.*
 
@@ -366,7 +366,7 @@ if (largest.isPresent()) {
 }
 ```
 
-`firstFirst` 메서드는 비어 있지 않은 컬렉션에서 첫번째 값을 리턴한다. 종종 이 메서드를 filter 메서드와 결합하면 유용하다. 존재한다면 글자 Q로 시작하는 첫번째 단어를 찾는다.
+`findFirst` 메서드는 비어 있지 않은 컬렉션에서 첫번째 값을 리턴한다. 종종 이 메서드를 filter 메서드와 결합하면 유용하다. 존재한다면 글자 Q로 시작하는 첫번째 단어를 찾는다.
 
 ```
 Optional<String> startWithQ =
@@ -380,7 +380,7 @@ Optional<String> startWithQ =
   words.parallel().filter(s -> s.starstWith("Q")).findAny();
 ```
 
-단순히 일치하는 요소가 있는지 알고 싶은 경우에는 `anyMatch`를 사용한다. 이 메서드는 Preficate 인자를 받으므로 filter를 사용할 필요가 없다.
+단순히 일치하는 요소가 있는지 알고 싶은 경우에는 `anyMatch`를 사용한다. 이 메서드는 Predicate 인자를 받으므로 filter를 사용할 필요가 없다.
 
 ```
 boolean aWordStartWithQ =
@@ -391,7 +391,7 @@ boolean aWordStartWithQ =
 
 ### 옵션 타입
 Optional<T> 객체는 T 타입 객체 또는 객체가 없는 경우의 래퍼다. Optional<T>는 객체 또는 null을 가리키는 T 타입 레퍼런스보다 안전한 대안으로 만들어졌다. 하지만 올바르게 사용할 경우에만 더 안전하다.  
-`get` 메서드는 감싸고 있는 요소가 존재할 대는 요소를 얻고, 그렇제 않으면 `NoSuchElementException`을 던진다.
+`get` 메서드는 감싸고 있는 요소가 존재할 때는 요소를 얻고, 그렇지 않으면 `NoSuchElementException`을 던진다.
 
 ```
 Optional<T> optionalValue = ...;
@@ -414,8 +414,8 @@ if (value != null) value.someMethod();
 
 #### 옵션 값 다루기
 `Optional`을 효과적으로 사용하는 핵심은 **올바른 값**을 소비하거나 **대체 값을 생산**하는 메서드를 사용하는 것이다.  
-`ifPresent` 메서드는 함수를 받는 두번째 형태가 있다. 옵션 값이 존재하면 해당 함수로 전달되며 그렇지 않으면 아무 일도 일어나지 않는다. if문을 사용하는 대신 다음과 같이 호출할 수 있다. `optionalValue.isPresent(v -> v 처리);` 예를 들어, 값이 존재하는 경우 집합에 해당 값을 추가하려고 할때는 다음과 같이 호출한다. `optionalValue.ifPresent(v -> results.add(v));` 또는 `optionalValue.ifPresent(results:add);`  
-함수를 받는 `ifPresent` 버전을 호출할 때는 값이 리턴되지 않는다. 따럿 결과를 처리하고 싶은 경우에는 대신 map을 사용한다. `Optional<Boolean> added = optionalValue.map(results::add);` 이제 `added`는 세가지 값(true/false/빈 Optional 중 하나를 가진다.
+`ifPresent` 메서드는 함수를 받는 두번째 형태가 있다. 옵션 값이 존재하면 해당 함수로 전달되며 그렇지 않으면 아무 일도 일어나지 않는다. if문을 사용하는 대신 다음과 같이 호출할 수 있다. `optionalValue.isPresent(v -> v 처리);` 예를 들어, 값이 존재하는 경우 집합에 해당 값을 추가하려고 할때는 다음과 같이 호출한다. `optionalValue.ifPresent(v -> results.add(v));` 또는 `optionalValue.ifPresent(results::add);`  
+함수를 받는 `ifPresent` 버전을 호출할 때는 값이 리턴되지 않는다. 따라서 결과를 처리하고 싶은 경우에는 대신 map을 사용한다. `Optional<Boolean> added = optionalValue.map(results::add);` 이제 `added`는 세가지 값(true/false/빈 Optional 중 하나를 가진다.
 
 옵션 값이 없을때 대체 값 사용.
 

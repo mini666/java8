@@ -578,22 +578,22 @@ List<Locale> swissLocales = countryToLocales.get("CH");   // it_CH, de_CH, fr_CH
 
 *로케일에 관해 빠르게 복습해보자. 각 로케일은 언어 코드(영어인 경우 en)와 국가 코드(미국인 경우 US)를 포함한다. 로케일 en_US는 미국에서 사용하는 영어를 말하며, en_IE는 아일랜드에서 사용하는 영어를 말한다. 몇몇 국가에는 여러 로케일이 있다. 예를 들어, ga_IE는 아일랜드에서 사용하는 게일어다. 또한 앞의 예에서 볼 수 있듯이 저자의 JVM은 세가지 로케일을 파악하고 있다.* 
 
-분류 함수가 Predicate 함수(즉, boolean을 리턴하는 함수)인 경우, 스트림 요소가 리스트 두개(각각 함수에서 true와 false를 리턴하는 경우에 해당)로 분할된다. 이 경우에는 groupingBy 대신 partitioningBy를 사용하면 훨씬 효율적이다. 예를 들어, 다음 예저는 모든 로케일을 영어를 사용하는 경우와 그 외의 경여루 분리한다.
+분류 함수가 Predicate 함수(즉, boolean을 리턴하는 함수)인 경우, 스트림 요소가 리스트 두개(각각 함수에서 true와 false를 리턴하는 경우에 해당)로 분할된다. 이 경우에는 groupingBy 대신 partitioningBy를 사용하면 훨씬 효율적이다. 예를 들어, 다음 예저는 모든 로케일을 영어를 사용하는 경우와 그 외의 경우로 분리한다.
 
 ```
 Map<Boolean, List<Locale>> englishAndOtherLocales = locales.collect(Collections.patitioningBy(l -> l.getLanguage().equals("en")));
-List<Locale>> englishLocales = englishAndOtherLocales.get(true);
+List<Locale> englishLocales = englishAndOtherLocales.get(true);
 ```
 
 *groupingByConcurrent 메서드를 호출하면 병행 맵을 얻으며, 이를 병렬 스트림에서 사용하면 동시에 내용이 채워진다. 전체적으로 볼 때 이 메서드는 toConcurrentMap 메서드에 해당한다.*
 
-groupingBy 메서드는 값이 리스트인 맵을 돌려진다. 이들 리스트를 특정 방식으로 처리하려면 *다운 스트림 컬렉터*를 제공한다. 예를 들어, 리스트 대신 집합을 원하는 경우 앞 절에서 본 Collectors.toSet 컬렉터를 사용할 수 있다.
+groupingBy 메서드는 값이 리스트인 맵을 돌려준다. 이들 리스트를 특정 방식으로 처리하려면 *다운 스트림 컬렉터*를 제공한다. 예를 들어, 리스트 대신 집합을 원하는 경우 앞 절에서 본 Collectors.toSet 컬렉터를 사용할 수 있다.
 
 ```
 Map<String, Set<Locale>> countryToLocaleSet = locales.collect(groupingBy(Locales.getCountry, Collectors.toSet()));
 ```
 
-그룹으로 묶인 요소들의 다운스트림 처리용으로 몇 가지 다른 커렉터가 제공된다.
+그룹으로 묶인 요소들의 다운스트림 처리용으로 몇 가지 다른 컬렉터가 제공된다.
 * countring은 모인 요소들의 개수를 센다.예를 들어 다음 코드는 각 국가의 로케일 개수를 센다. `Map<String, Long> countryToLocaleCounts = locales.collect(groupingBy(Locale::getCountry, Collectors.counting()));`
 * summing(Int|Long|Double)은 함수 인자 하나를 받아서 해당 함수를 다운스트림 요소들에 적용하고 합계를 구한다. 예를 들어 다음 코드는 도시로 구성된 스트림에서 주별 인구의 합계를 계산한다. `Map<String, Integer> stateToCityPopulation = cities.collect(groupingBy(City::getState, summingInt(City::getPopulation)));`
 * maxBy와 minBy는 비교자 하나를 받아서 다운스트림 요소들의 최대값과 최솟값을 구한다. 예를 들어, 다음 코드는 주별로 가장 큰 도시를 구한다. `Map<Sting, City> stateToLargestCity = cities.collect(groupingBy(City::getState, maxBy(Comparator.comparing(City::getPopulation))));`
@@ -619,7 +619,7 @@ Map<String, IntSummaryStatistics> stateToCityPopulationSummary
     groupingBy(City::getState, 
       summarizingInt(City::getPopulation)));
 ```
-* 마지막으로 reducing 메서드는 다운스트림 요소들에 범용 리덕션을 적용한다. 세가지 메서드 형태 reducing(binaryOperator), reducing(identity, binaryOperator), reducing(identity, mapper, binaryOperator)가 있다. 첫번째 형태에서는 항등값이 null 이다.(항등 파라미터가 없으면 Optional 결과를 돌려주는 Stream::reduce의 형태와는 다르다는 점을 주목하기 바란다). 세번째 형태에서는 mapper 함수가 적용되고 이 함수의 값이 리류스 된다.
+* 마지막으로 reducing 메서드는 다운스트림 요소들에 범용 리덕션을 적용한다. 세가지 메서드 형태 reducing(binaryOperator), reducing(identity, binaryOperator), reducing(identity, mapper, binaryOperator)가 있다. 첫번째 형태에서는 항등값이 null 이다.(항등 파라미터가 없으면 Optional 결과를 돌려주는 Stream::reduce의 형태와는 다르다는 점을 주목하기 바란다). 세번째 형태에서는 mapper 함수가 적용되고 이 함수의 값이 리듀스 된다.
 
 ```
 // 각 주에 있는 모든 도시의 이름을 컴마로 연결
@@ -660,7 +660,7 @@ IntStream codes = sentence.codePoints();
 
 ```
 Stream<String> words = ...;
-IntStream lengths = words.mapToInt(String::lenght);
+IntStream lengths = words.mapToInt(String::length);
 // 기본 타입 스트림을 객체 스트림으로 변환
 Stream<Integer> integers = Integer.range(0, 100).boxed();
 ```
@@ -677,20 +677,20 @@ parallel 메서드는 순차 스트림을 병렬 스트림으로 변환한다. `
 
 병렬 스트림 연산에 전달하는 함수가 스레드에 안전함을 보장하는 일은 여러분의 책임이다.
 
-기본적으로 순서 유지 컬렉션(배열과 리스트), 범위(Range), 발생기(Genrator), 반복자 또는 Stream.sorted를 호출해서 얻는 스트림은 순서를 유지한다. 순서 유지 스트림의 결과들은 원본 요소들의 순서로 쌓이고, 전체적으로 예측 가능하게 동작하낟. 따라서 같은 연산들을 두번 실행해도 왼전히 같은 결과를 얻는다. 순서 때문에 병렬화를 이용할 수 없는 것은 아니다. 예를 들어 Stream.map(fun)을 계산할 때 스트림은 n개 세그먼트로 분할되어 각각이 동시에 처리될 수 있다. 그런 다음 순서대로 재조립된다.
+기본적으로 순서 유지 컬렉션(배열과 리스트), 범위(Range), 발생기(Genrator), 반복자 또는 Stream.sorted를 호출해서 얻는 스트림은 순서를 유지한다. 순서 유지 스트림의 결과들은 원본 요소들의 순서로 쌓이고, 전체적으로 예측 가능하게 동작한다. 따라서 같은 연산들을 두번 실행해도 왼전히 같은 결과를 얻는다. 순서 때문에 병렬화를 이용할 수 없는 것은 아니다. 예를 들어 Stream.map(fun)을 계산할 때 스트림은 n개 세그먼트로 분할되어 각각이 동시에 처리될 수 있다. 그런 다음 순서대로 재조립된다.
 
-몇몇 연산은 순서에 대한 요구 사항을 버리면 더 효과적으로 병렬화될 수 있다. Stream.unordered 메서드를 호출함으로써 순서에는 관심이 없음을 나타낼 수 있다. 이로부터 이점을 얻을 수 잇는 한가지 연산은 Stream.distinct다. 순서 유지 스트림에서 distinct는 같은 요소 중 첫번째를 보존한다. 하지만 이 동작은 병렬화를 방해한다(세그먼트를 처리 중인 스레드는 이전 세그먼트가 처리되기 전에는 어느 요소들을 버려야 하는지 알 수 없다). 유일한 요소라면 어느 것이든 보존해도 괜찮다면 (중복을 추적하기 위해 공유 집합을 사용해) 모든 세그먼트를 동시에 처리할 수 있다.
+몇몇 연산은 순서에 대한 요구 사항을 버리면 더 효과적으로 병렬화될 수 있다. Stream.unordered 메서드를 호출함으로써 순서에는 관심이 없음을 나타낼 수 있다. 이로부터 이점을 얻을 수 있는 한가지 연산은 Stream.distinct다. 순서 유지 스트림에서 distinct는 같은 요소 중 첫번째를 보존한다. 하지만 이 동작은 병렬화를 방해한다(세그먼트를 처리 중인 스레드는 이전 세그먼트가 처리되기 전에는 어느 요소들을 버려야 하는지 알 수 없다). 유일한 요소라면 어느 것이든 보존해도 괜찮다면 (중복을 추적하기 위해 공유 집합을 사용해) 모든 세그먼트를 동시에 처리할 수 있다.
 
 순서를 포기하면 limit 메서드를 빠르게 할 수 있다. 스트림에서 단지 n개 요소를 원할뿐 어느 것을 얻는지는 상관하지 않는다면 `Stream<T> sample = stream.parallel().unordered().limit(n);`
 
-맵으로 모으기에 있는 맵을 병합하는 일은 비용이 많이 든다. 이 때문에 Collectos.groupingByConcurrent 메서드는 공유되는 병행 맵을 사용한다. 분명히 병렬화의 이점을 얻기 위해 맵 값들의 순서는 스트림 순서와 달라질 것이다. 이 컬렉터는 심지어 순서 유지 스트림에서도 순서을 유지하지 않는 성질이 있다. 따라서 스트림이 순서를 유지하지 않게 만들 필요 없이도 효율적으로 상요할 수 있다. 그럼에도 여전히 스트림을 병렬로 만들어야 한다.
+맵으로 모으기에 있는 맵을 병합하는 일은 비용이 많이 든다. 이 때문에 Collectos.groupingByConcurrent 메서드는 공유되는 병행 맵을 사용한다. 분명히 병렬화의 이점을 얻기 위해 맵 값들의 순서는 스트림 순서와 달라질 것이다. 이 컬렉터는 심지어 순서 유지 스트림에서도 순서을 유지하지 않는 성질이 있다. 따라서 스트림이 순서를 유지하지 않게 만들 필요 없이도 효율적으로 사용할 수 있다. 그럼에도 여전히 스트림을 병렬로 만들어야 한다.
 
 ```
 Map<String, List<String>> result = cities.parallel().collect(
   Collectos.groupingByConcurrent(City::getState));
 ```
 
-> 스트림 연산을 수행하는 동안에는 해당 스트림을 뒷받침하는 컬렉션을 절대 수정하면 안된다(스레드에 안전한 수정인 경우에도). 스트림은 자체적으로 데이터를 모이지 않음을 명심하기 바란다(데이터는 항상 별도의 컬렉션에 존재한다). 만딜 해당 컬렉션을 수정하면 스트림 연산들의 결과는 정의되지 않는다. JDK 문서에서는 이 요구 사항을 방해 금지(Noninterference)라고 언급하고 있다. 이 사항은 순차 스트림과 병렬 스트림 모두에 적용된다.  
+> 스트림 연산을 수행하는 동안에는 해당 스트림을 뒷받침하는 컬렉션을 절대 수정하면 안된다(스레드에 안전한 수정인 경우에도). 스트림은 자체적으로 데이터를 모으지 않음을 명심하기 바란다(데이터는 항상 별도의 컬렉션에 존재한다). 만일 해당 컬렉션을 수정하면 스트림 연산들의 결과는 정의되지 않는다. JDK 문서에서는 이 요구 사항을 방해 금지(Noninterference)라고 언급하고 있다. 이 사항은 순차 스트림과 병렬 스트림 모두에 적용된다.  
 > 엄밀히 말하면 중간 스트림 연산은 지연 처리되기 때문에 최종 연산이 실행하는 시점 이전까지는 컬렉션을 변경할 수 있다.
 
 ### 함수형 인터페이스
@@ -3388,7 +3388,7 @@ try (URLClassLoader loader = new URLClassLoader(rls)) {
 
 #### BitSet
 BitSet은 일련의 비트로 구현된 정수 집합이다. 만일 집합이 정수 i를 포함하면 i번째 비트가 설정된다. 따라서 효율적인 집합 연산을 가능하게 한다. 합집합/교집합/여집합은 단순한 비트 단위 or/and/not 연산이다.  
-자바7dms 비트 집합을 생성하는 메서드를 추가했다.
+자바7 비트 집합을 생성하는 메서드를 추가했다.
 
 ```
 byte[] bytes = {(byte)0b10101100, (byte)0b00101000 };
@@ -3401,47 +3401,3 @@ byte[] bytes = powersOfTwo.toByteArray();     // 0b0010110, 1, 1, 0, 1, 0, 0, 0,
 ```
 
 *자바8부터 BitSet은 IntStream을 돌려주는 stream 메서드를 포함한다.*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

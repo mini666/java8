@@ -732,7 +732,7 @@ BinaryOperator<T> | T, T | T | T 타입에 적용되는 이항 연산자
 
 ## 3장 람다를 이용한 프로그래밍
 * 핵심 내용
-  * 란다 표현식을 사용하는 주 이유는 적절한 시점까지 코드의 실행을 지연하기 위한 것
+  * 람다 표현식을 사용하는 주 이유는 적절한 시점까지 코드의 실행을 지연하기 위한 것
   * 람다 표현식을 실행할 때 필요한 모든 데이터를 입력으로 제공
   * 가능하면 기존 함수형 인터페이스 중 하나를 선택
   * 종종 함수형 인터페이스의 인스턴스를 리턴하는 메서드를 작성하는 것이 유용
@@ -811,9 +811,9 @@ BinaryOperator<T> | T, T | T | apply | T 타입을 대상으로 동작하는 이
 Predicate<T> | T | boolean | test | boolean 값을 리턴 | and, or, negate, isEqual
 BiPredicate<T, U> | T, U | boolean | test | 인자 두개를 받고 boolean 값을 리턴 | ant, or, negate
 
-예를 들어, 특정 기준을 만족하는 파일을 처리하는 메서드를 작상한다고 하자. 이때 서술적인 java.io.FileFilte 클래스를 사용해야 하는가, 아니면 Prediate<File>을 사용해야 하는가? 둘 중에 Predicate<File>의 사용을 강력히 추천한다. 아마도 FileFilter 인스턴스를 생선하는 수많은 유용한 메서드를 이미 갖추고 있을 경우에나 Predicate<File>을 사용하지 않을 것이다.
+예를 들어, 특정 기준을 만족하는 파일을 처리하는 메서드를 작상한다고 하자. 이때 서술적인 java.io.FileFilte 클래스를 사용해야 하는가, 아니면 Prediate<File>을 사용해야 하는가? 둘 중에 Predicate<File>의 사용을 강력히 추천한다. 아마도 FileFilter 인스턴스를 생산하는 수많은 유용한 메서드를 이미 갖추고 있을 경우에나 Predicate<File>을 사용하지 않을 것이다.
 
-*대부분의 표준 함수형 인터페이스는 함수를 생산하거나 결합하는 비추상 메서드를 포함한다. 예를 들어 `Prediate.isEqual(a)`는 a가 null이 아닌 경우 `a::equals`와 같다. 또한 Predicate들을 결합하는데 사용하는 디폴트 메서드인 and, or, negate가 있다. 예를들어, `Predicate.isEqual(a).or.Predicate.isEqual(b))`는 `x -> a.equals(x) || b.equals(x)`와 같다.*
+*대부분의 표준 함수형 인터페이스는 함수를 생산하거나 결합하는 비추상 메서드를 포함한다. 예를 들어 `Predicate.isEqual(a)`는 a가 null이 아닌 경우 `a::equals`와 같다. 또한 Predicate들을 결합하는데 사용하는 디폴트 메서드인 and, or, negate가 있다. 예를들어, `Predicate.isEqual(a).or.Predicate.isEqual(b))`는 `x -> a.equals(x) || b.equals(x)`와 같다.*
 
 각 픽셀에 Color -> Color 함수를 적용해서 이미지를 변환하려 한다고 하자. `Image brightenedImage = transform(image, Color::brighter);`  
 이 용도로 사용할 수 있는 UnaryOperator<Color> 라는 표준 인터페이스가 있다.
@@ -849,8 +849,7 @@ To*P*BiFunction<T, U> | T, U | *p* | applyAs*P*
 *P*BinaryOperator< | *p, p* | *p* | applyAs*P*
 *P*Predicate | *p* | boolean | test
 
-때로는 표준 라이브러리에 원하는 인터페이스가 없어서 자시남ㄴ의 함수형 인터ㅔㅍ이스를 제공해야 할 수도 있다. 사용자가 이미지의 (x, y) 위치에 따라 새로운 색상을 계산하는 함수인 `(int, int, Color) -> Color`를 제공하게 하는 방법으로 이미지의 색상을 수정하고 샆디고 하자. 이 경우 다음과 같이 자신만의 인터페이스를 정의할 수 있다.
-
+때로는 표준 라이브러리에 원하는 인터페이스가 없어서 자신만의 함수형 인터페이스를 제공해야 할 수도 있다. 사용자가 이미지의 (x, y) 위치에 따라 새로운 색상을 계산하는 함수인 `(int, int, Color) -> Color`를 제공하게 하는 방법으로 이미지의 색상을 수정하고 샆디고 하자. 이 경우 다음과 같이 자신만의 인터페이스를 정의할 수 있다.
 ```
 @FunctionalInterface
 public interface ColorTransformer {
@@ -1026,7 +1025,7 @@ public static <T> void doInOrderAsync(SupplierT> first, Consumer<T> second, Cons
 // second를 BiConsumer<T, Throwable>로 만들고 first에서 발생한 예외를 다루게 할 수도 있다.
 ```
 
-종종 함수형 인터페이스의 메서드ㅓ가 검사 예외를 허용하지 않는 것이 불편할 때가 있다. 물론 메서드에서 Supplier<T> 대신 Callable<T> 같은 검사 예외를 허용하는 함수형 인터페이스를 받을 수 있다. Consumer나 Function에 적용할 수 있는 버전이 필료하다면 직접 만들어야 한다.  
+종종 함수형 인터페이스의 메서드가 검사 예외를 허용하지 않는 것이 불편할 때가 있다. 물론 메서드에서 Supplier<T> 대신 Callable<T> 같은 검사 예외를 허용하는 함수형 인터페이스를 받을 수 있다. Consumer나 Function에 적용할 수 있는 버전이 필요하다면 직접 만들어야 한다.  
 때로는 이 문제를 다음과 같이 제네릭 래퍼를 이용해 해결하라는 제안을 보게 된다.
 
 ```

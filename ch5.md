@@ -244,7 +244,7 @@ formatted = formatter.withLocale(Locale.FRENCH).format(apollo11launch); // 16 ju
 formatter = DateTimeFormatter.ofPattern("E yyyy-MM-dd HH:mm");  // Wed 1969-07-16 09:32
 ```
 
-날짜/시간 형식에 흔히 사용하는 포맷팅 심볼
+날짜/시간 형식에 흔히 사용하는 포맷팅 심볼  
 ChronoField 또는 용도 | 예
 ------------|------------
 EAR | G:AD, GGGG:Anno Domini, GGGGG:A

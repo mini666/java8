@@ -148,7 +148,7 @@ LocalTime은 AM/PM은 신경 쓰지 않는다. 이런 일은 포맷터의 몫이
 ### 구역시간
 자바는 IANA(인터넷 할당 번호 관리 기관-Internet Assigned Numbers Authority) 데이터베이스를 사용한다.
 
-모든 시간대를 얻으려면 ZoneId.getAvailableIds를 호출.
+모든 시간대를 얻으려면 ZoneId.getAvailableZoneIds를 호출.
 
 정적 메서드 ZoneId.of(id)는 시간대 ID를 넘겨주면 ZoneId 객체를 돌려준다. 이 객체를 사용해 local.atZone(zoneId) 형식으로 호출하면 LocalDateTime 객체를 ZonedDateTime 객체로 변환할 수 있다.
 또한 ZonedDateTime.of(year, month, day, hour, minute, second, nano, zoneId)를 호출해 ZonedDateTime을 생성할 수도 있다.

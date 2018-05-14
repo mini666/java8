@@ -352,7 +352,7 @@ List<Locale> swissLocales = countryToLocales.get("CH");   // it_CH, de_CH, fr_CH
 분류 함수가 Predicate 함수(즉, boolean을 리턴하는 함수)인 경우, 스트림 요소가 리스트 두개(각각 함수에서 true와 false를 리턴하는 경우에 해당)로 분할된다. 이 경우에는 groupingBy 대신 partitioningBy를 사용하면 훨씬 효율적이다. 예를 들어, 다음 예저는 모든 로케일을 영어를 사용하는 경우와 그 외의 경우로 분리한다.
 
 ```
-Map<Boolean, List<Locale>> englishAndOtherLocales = locales.collect(Collections.patitioningBy(l -> l.getLanguage().equals("en")));
+Map<Boolean, List<Locale>> englishAndOtherLocales = locales.collect(Collectors.patitioningBy(l -> l.getLanguage().equals("en")));
 List<Locale> englishLocales = englishAndOtherLocales.get(true);
 ```
 
